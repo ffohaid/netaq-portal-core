@@ -31,5 +31,14 @@ public interface IApplicationDbContext
     DbSet<Committee> Committees { get; }
     DbSet<CommitteeMember> CommitteeMembers { get; }
     
+    // Sprint 3 entities - Offer Evaluation & AI
+    DbSet<Proposal> Proposals { get; }
+    DbSet<ProposalFile> ProposalFiles { get; }
+    DbSet<ComplianceChecklist> ComplianceChecklists { get; }
+    DbSet<ComplianceCheckResult> ComplianceCheckResults { get; }
+    DbSet<EvaluationScore> EvaluationScores { get; }
+    DbSet<EvaluationReport> EvaluationReports { get; }
+    DbSet<ReportSignature> ReportSignatures { get; }
+    
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -35,6 +35,15 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<BookletTemplateSection> BookletTemplateSections => Set<BookletTemplateSection>();
     public DbSet<Committee> Committees => Set<Committee>();
     public DbSet<CommitteeMember> CommitteeMembers => Set<CommitteeMember>();
+    
+    // Sprint 3 entities - Offer Evaluation & AI
+    public DbSet<Proposal> Proposals => Set<Proposal>();
+    public DbSet<ProposalFile> ProposalFiles => Set<ProposalFile>();
+    public DbSet<ComplianceChecklist> ComplianceChecklists => Set<ComplianceChecklist>();
+    public DbSet<ComplianceCheckResult> ComplianceCheckResults => Set<ComplianceCheckResult>();
+    public DbSet<EvaluationScore> EvaluationScores => Set<EvaluationScore>();
+    public DbSet<EvaluationReport> EvaluationReports => Set<EvaluationReport>();
+    public DbSet<ReportSignature> ReportSignatures => Set<ReportSignature>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
