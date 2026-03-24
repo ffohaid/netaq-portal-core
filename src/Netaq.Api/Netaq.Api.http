@@ -1,0 +1,6 @@
+@Netaq.Api_HostAddress = http://localhost:5183
+
+GET {{Netaq.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

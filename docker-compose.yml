@@ -1,0 +1,141 @@
+version: '3.8'
+
+services:
+  # ===== Nginx Reverse Proxy =====
+  nginx:
+    image: nginx:alpine
+    container_name: netaq-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+      - frontend
+    networks:
+      - netaq-network
+    restart: unless-stopped
+
+  # ===== .NET 8 Web API =====
+  api:
+    build:
+      context: .
+      dockerfile: src/Netaq.Api/Dockerfile
+    container_name: netaq-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+      - DB_CONNECTION_STRING=Server=sqlserver;Database=NetaqDb;User Id=sa;Password=${DB_PASSWORD:-NetaqP@ss2026!};TrustServerCertificate=True;
+      - REDIS_CONNECTION_STRING=redis:6379,password=${REDIS_PASSWORD:-NetaqRedis2026!}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-NetaqJwtSecretKey2026!SuperSecureKeyThatIsAtLeast32Characters}
+      - JWT_ISSUER=netaq.pro
+      - JWT_AUDIENCE=netaq.pro
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-NetaqAES256EncryptionKey2026!Secure}
+      - SMTP_HOST=smtp.hostinger.com
+      - SMTP_PORT=465
+      - SMTP_USER=admin@netaq.pro
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM_EMAIL=admin@netaq.pro
+      - SMTP_FROM_NAME=NETAQ Portal
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - netaq-network
+    restart: unless-stopped
+
+  # ===== Vue 3 Frontend =====
+  frontend:
+    build:
+      context: ./src/Netaq.Frontend
+      dockerfile: Dockerfile
+    container_name: netaq-frontend
+    environment:
+      - VITE_API_URL=http://api:5000
+    networks:
+      - netaq-network
+    restart: unless-stopped
+
+  # ===== SQL Server 2022 =====
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: netaq-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${DB_PASSWORD:-NetaqP@ss2026!}
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    networks:
+      - netaq-network
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "${DB_PASSWORD:-NetaqP@ss2026!}" -C -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  # ===== Redis 7 =====
+  redis:
+    image: redis:7-alpine
+    container_name: netaq-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD:-NetaqRedis2026!}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - netaq-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-NetaqRedis2026!}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ===== MinIO (Object Storage) =====
+  minio:
+    image: minio/minio:latest
+    container_name: netaq-minio
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-netaqadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-NetaqMinio2026!}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    networks:
+      - netaq-network
+    restart: unless-stopped
+
+  # ===== Qdrant (Vector DB for RAG) =====
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: netaq-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    networks:
+      - netaq-network
+    restart: unless-stopped
+
+volumes:
+  sqlserver-data:
+  redis-data:
+  minio-data:
+  qdrant-data:
+
+networks:
+  netaq-network:
+    driver: bridge
