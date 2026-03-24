@@ -127,4 +127,24 @@ public class Tender : BaseEntity, ITenantEntity
     public WorkflowInstance? WorkflowInstance { get; set; }
     public ICollection<TenderSection> Sections { get; set; } = new List<TenderSection>();
     public ICollection<TenderCriteria> Criteria { get; set; } = new List<TenderCriteria>();
+    
+    // Sprint 3 - Evaluation
+    public ICollection<Proposal> Proposals { get; set; } = new List<Proposal>();
+    public ICollection<ComplianceChecklist> ComplianceChecklists { get; set; } = new List<ComplianceChecklist>();
+    public ICollection<EvaluationReport> EvaluationReports { get; set; } = new List<EvaluationReport>();
+    
+    /// <summary>
+    /// Whether the proposal receipt has been closed (no more uploads allowed).
+    /// </summary>
+    public bool IsReceiptClosed { get; set; } = false;
+    
+    /// <summary>
+    /// Date when proposal receipt was closed.
+    /// </summary>
+    public DateTime? ReceiptClosedAt { get; set; }
+    
+    /// <summary>
+    /// User who closed the proposal receipt.
+    /// </summary>
+    public Guid? ReceiptClosedBy { get; set; }
 }

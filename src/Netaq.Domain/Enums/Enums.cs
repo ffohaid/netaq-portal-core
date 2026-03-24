@@ -303,5 +303,87 @@ public enum TenderAuditAction
     Cancelled = 8,
     Exported = 9,
     AiSuggestionRequested = 10,
-    AiComplianceCheckRequested = 11
+    AiComplianceCheckRequested = 11,
+    // Sprint 3 - Offer Evaluation
+    ProposalUploaded = 12,
+    ProposalReceiptClosed = 13,
+    ComplianceCheckPerformed = 14,
+    TechnicalScoreEntered = 15,
+    TechnicalScoreFinalized = 16,
+    FinancialScoreEntered = 17,
+    FinalScoreCalculated = 18,
+    EvaluationReportGenerated = 19,
+    EvaluationReportSigned = 20,
+    AiSummarizationRequested = 21,
+    AiGapAnalysisRequested = 22,
+    AiScoreSuggestionRequested = 23,
+    AiComparisonMatrixRequested = 24,
+    AiAwardJustificationRequested = 25
+}
+
+// ===== Sprint 3 Enums =====
+
+/// <summary>
+/// Proposal lifecycle status.
+/// </summary>
+public enum ProposalStatus
+{
+    Received = 1,
+    CompliancePassed = 2,
+    ComplianceFailed = 3,
+    TechnicalEvaluationInProgress = 4,
+    TechnicalEvaluationCompleted = 5,
+    TechnicallyDisqualified = 6,
+    FinancialEvaluationInProgress = 7,
+    FinancialEvaluationCompleted = 8,
+    Ranked = 9,
+    Recommended = 10,
+    Excluded = 11
+}
+
+/// <summary>
+/// Category of proposal file.
+/// </summary>
+public enum ProposalFileCategory
+{
+    TechnicalOffer = 1,
+    FinancialOffer = 2,
+    ComplianceDocuments = 3,
+    SupportingDocuments = 4,
+    Other = 5
+}
+
+/// <summary>
+/// Evaluation report types (3 types as per PRD).
+/// </summary>
+public enum EvaluationReportType
+{
+    ComplianceInspection = 1,
+    TechnicalEvaluation = 2,
+    FinalEvaluation = 3
+}
+
+/// <summary>
+/// Evaluation report status.
+/// </summary>
+public enum EvaluationReportStatus
+{
+    Draft = 1,
+    PendingSignatures = 2,
+    Signed = 3,
+    Finalized = 4,
+    Exported = 5
+}
+
+/// <summary>
+/// AI evaluation feature types (Sprint 3).
+/// </summary>
+public enum AiEvaluationFeatureType
+{
+    ProposalSummarization = 1,
+    AutoMapping = 2,
+    GapAnalysis = 3,
+    ScoreSuggestion = 4,
+    ComparisonMatrix = 5,
+    AwardJustificationDraft = 6
 }
