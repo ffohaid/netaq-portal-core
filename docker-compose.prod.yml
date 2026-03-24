@@ -1,0 +1,278 @@
+# ============================================================
+# NETAQ Portal — Production Docker Compose
+# Version: 1.0.0 | Sprint 5: Deployment & DevOps
+# ============================================================
+# SECURITY: All environment variables are loaded from .env file
+# which is stored locally on the server and NEVER pushed to GitHub.
+# ============================================================
+
+services:
+  # ===== Nginx Reverse Proxy (Only Public-Facing Service) =====
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: netaq-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - certbot-webroot:/var/www/certbot:ro
+      - certbot-certs:/etc/letsencrypt:ro
+      - nginx-logs:/var/log/nginx
+    depends_on:
+      api:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    networks:
+      - netaq-public
+      - netaq-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ===== Certbot (SSL Certificate Management) =====
+  certbot:
+    image: certbot/certbot:latest
+    container_name: netaq-certbot
+    volumes:
+      - certbot-webroot:/var/www/certbot
+      - certbot-certs:/etc/letsencrypt
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done;'"
+    networks:
+      - netaq-public
+    restart: unless-stopped
+
+  # ===== .NET 8 Web API =====
+  api:
+    build:
+      context: .
+      dockerfile: src/Netaq.Api/Dockerfile
+    image: ghcr.io/ffohaid/netaq-portal-core/netaq-api:latest
+    container_name: netaq-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+      - DB_CONNECTION_STRING=Server=sqlserver;Database=NetaqDb;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True;
+      - REDIS_CONNECTION_STRING=redis:6379,password=${REDIS_PASSWORD}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_ISSUER=netaq.pro
+      - JWT_AUDIENCE=netaq.pro
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - SMTP_HOST=smtp.hostinger.com
+      - SMTP_PORT=465
+      - SMTP_USER=admin@netaq.pro
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM_EMAIL=admin@netaq.pro
+      - SMTP_FROM_NAME=NETAQ Portal
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - QDRANT_ENDPOINT=http://qdrant:6333
+      - OLLAMA_ENDPOINT=http://ollama:11434
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - netaq-network
+      - netaq-internal-ai
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ===== Vue 3 Frontend =====
+  frontend:
+    build:
+      context: ./src/Netaq.Frontend
+      dockerfile: Dockerfile
+    image: ghcr.io/ffohaid/netaq-portal-core/netaq-web:latest
+    container_name: netaq-frontend
+    networks:
+      - netaq-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+      update_config:
+        parallelism: 1
+        delay: 5s
+        order: start-first
+
+  # ===== SQL Server 2022 =====
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: netaq-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${DB_PASSWORD}
+      - MSSQL_PID=Developer
+      - TZ=Asia/Riyadh
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+      - sqlserver-backup:/var/opt/mssql/backup
+    networks:
+      - netaq-network
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$${DB_PASSWORD}" -C -Q "SELECT 1" || exit 1
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 45s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+
+  # ===== Redis 7 (Session & Cache) =====
+  redis:
+    image: redis:7-alpine
+    container_name: netaq-redis
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+      --appendfsync everysec
+    volumes:
+      - redis-data:/data
+    networks:
+      - netaq-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+
+  # ===== MinIO (S3-Compatible Object Storage) =====
+  minio:
+    image: minio/minio:latest
+    container_name: netaq-minio
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_SERVER_URL=https://netaq.pro
+    volumes:
+      - minio-data:/data
+    networks:
+      - netaq-network
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+
+  # ===== Qdrant (Vector DB for RAG Knowledge Base) =====
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: netaq-qdrant
+    volumes:
+      - qdrant-data:/qdrant/storage
+    networks:
+      - netaq-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:6333/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+
+  # ===== Ollama (On-Premise AI — FULLY ISOLATED FROM INTERNET) =====
+  ollama:
+    image: ollama/ollama:latest
+    container_name: netaq-ollama
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - netaq-internal-ai
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
+
+# ===== Volumes (Persistent Storage) =====
+volumes:
+  sqlserver-data:
+    driver: local
+  sqlserver-backup:
+    driver: local
+  redis-data:
+    driver: local
+  minio-data:
+    driver: local
+  qdrant-data:
+    driver: local
+  ollama-data:
+    driver: local
+  certbot-webroot:
+    driver: local
+  certbot-certs:
+    driver: local
+  nginx-logs:
+    driver: local
+
+# ===== Networks =====
+networks:
+  # Public network: Only Nginx and Certbot have access
+  netaq-public:
+    driver: bridge
+
+  # Internal network: All application services communicate here
+  netaq-network:
+    driver: bridge
+    internal: true
+
+  # Isolated AI network: Ollama has NO internet access
+  # Connected only to netaq-network via the API service
+  netaq-internal-ai:
+    driver: bridge
+    internal: true

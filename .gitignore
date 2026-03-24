@@ -13,10 +13,11 @@ node_modules/
 dist/
 .vite/
 
-# Environment files
+# Environment files (CRITICAL: Never commit secrets)
 .env
 .env.local
 .env.*.local
+.env.production
 
 # IDE
 .idea/
@@ -31,10 +32,15 @@ Thumbs.db
 # Docker
 docker-compose.override.yml
 
-# SSL certificates
+# SSL certificates and Let's Encrypt data
 nginx/ssl/
+certbot/
 
 # Logs
 *.log
 logs/
 dotnet-install.sh
+
+# Backup files
+*.bak
+*.backup
