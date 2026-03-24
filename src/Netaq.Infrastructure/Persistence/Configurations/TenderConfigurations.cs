@@ -29,7 +29,7 @@ public class TenderConfiguration : IEntityTypeConfiguration<Tender>
         builder.HasIndex(e => e.Status);
         
         builder.HasOne(e => e.Organization)
-            .WithMany()
+            .WithMany(o => o.Tenders)
             .HasForeignKey(e => e.OrganizationId)
             .OnDelete(DeleteBehavior.NoAction);
         
@@ -181,7 +181,7 @@ public class CommitteeConfiguration : IEntityTypeConfiguration<Committee>
         builder.HasIndex(e => e.TenderId);
         
         builder.HasOne(e => e.Organization)
-            .WithMany()
+            .WithMany(o => o.Committees)
             .HasForeignKey(e => e.OrganizationId)
             .OnDelete(DeleteBehavior.NoAction);
         
