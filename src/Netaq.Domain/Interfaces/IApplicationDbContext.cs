@@ -40,5 +40,9 @@ public interface IApplicationDbContext
     DbSet<EvaluationReport> EvaluationReports { get; }
     DbSet<ReportSignature> ReportSignatures { get; }
     
+    // Sprint 4 entities - Settings, Knowledge Base, Dashboards
+    DbSet<KnowledgeSource> KnowledgeSources { get; }
+    DbSet<SystemSetting> SystemSettings { get; }
+    
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

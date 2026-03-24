@@ -55,7 +55,7 @@ public class DocumentIndexingBackgroundService : BackgroundService
         // We use a simple approach: check for approved tenders where sections have content
         var approvedTenders = await context.Tenders
             .AsNoTracking()
-            .Where(t => t.Status == TenderStatus.Approved || t.Status == TenderStatus.Published)
+            .Where(t => t.Status == TenderStatus.Approved || t.Status == TenderStatus.EvaluationInProgress)
             .Include(t => t.Sections)
             .ToListAsync(cancellationToken);
 

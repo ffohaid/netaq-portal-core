@@ -298,7 +298,7 @@ public class RagService : IRagService
 
         if (config == null) return (null, null);
 
-        return (config.QdrantEndpoint, config);
+        return (config.VectorDbEndpoint, config);
     }
 
     private static string GetCollectionName(Guid organizationId)

@@ -35,7 +35,7 @@ public class ProposalsController : ControllerBase
         [FromQuery] int pageSize = 20)
     {
         var result = await _mediator.Send(new GetProposalsByTenderQuery(tenderId, status, pageNumber, pageSize));
-        return result.Success ? Ok(result) : BadRequest(result);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
     /// <summary>
@@ -45,7 +45,7 @@ public class ProposalsController : ControllerBase
     public async Task<IActionResult> GetProposal(Guid tenderId, Guid proposalId)
     {
         var result = await _mediator.Send(new GetProposalDetailQuery(proposalId));
-        if (!result.Success) return NotFound(result);
+        if (!result.IsSuccess) return NotFound(result);
         return Ok(result);
     }
 
@@ -68,7 +68,7 @@ public class ProposalsController : ControllerBase
             request.Notes
         ));
 
-        if (!result.Success) return BadRequest(result);
+        if (!result.IsSuccess) return BadRequest(result);
         return CreatedAtAction(nameof(GetProposal), new { tenderId, proposalId = result.Data!.Id }, result);
     }
 
@@ -107,7 +107,7 @@ public class ProposalsController : ControllerBase
             category
         ));
 
-        if (!result.Success) return BadRequest(result);
+        if (!result.IsSuccess) return BadRequest(result);
         return Ok(result);
     }
 
@@ -119,7 +119,7 @@ public class ProposalsController : ControllerBase
     public async Task<IActionResult> CloseReceipt(Guid tenderId)
     {
         var result = await _mediator.Send(new CloseProposalReceiptCommand(tenderId));
-        if (!result.Success) return BadRequest(result);
+        if (!result.IsSuccess) return BadRequest(result);
         return Ok(result);
     }
 
@@ -130,7 +130,7 @@ public class ProposalsController : ControllerBase
     public async Task<IActionResult> GetComplianceChecklist(Guid tenderId)
     {
         var result = await _mediator.Send(new GetComplianceChecklistQuery(tenderId));
-        return result.Success ? Ok(result) : BadRequest(result);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 }
 

@@ -27,7 +27,7 @@ public class AiEvaluationController : ControllerBase
     public async Task<IActionResult> ExtractText(Guid proposalId)
     {
         var result = await _mediator.Send(new ExtractDocumentTextCommand(proposalId));
-        return result.Success ? Ok(result) : BadRequest(result);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
     /// <summary>
@@ -37,7 +37,7 @@ public class AiEvaluationController : ControllerBase
     public async Task<IActionResult> SummarizeProposal(Guid proposalId)
     {
         var result = await _mediator.Send(new SummarizeProposalCommand(proposalId));
-        return result.Success ? Ok(result) : BadRequest(result);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
     /// <summary>
@@ -47,7 +47,7 @@ public class AiEvaluationController : ControllerBase
     public async Task<IActionResult> AutoMapRequirements(Guid proposalId)
     {
         var result = await _mediator.Send(new Application.Ai.Services.SummarizeProposalCommand(proposalId));
-        return result.Success ? Ok(result) : BadRequest(result);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
     /// <summary>
@@ -57,7 +57,7 @@ public class AiEvaluationController : ControllerBase
     public async Task<IActionResult> AnalyzeGaps(Guid proposalId)
     {
         var result = await _mediator.Send(new AnalyzeGapsCommand(proposalId));
-        return result.Success ? Ok(result) : BadRequest(result);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
     /// <summary>
@@ -68,7 +68,7 @@ public class AiEvaluationController : ControllerBase
     public async Task<IActionResult> SuggestScores(Guid proposalId)
     {
         var result = await _mediator.Send(new SuggestScoresCommand(proposalId));
-        return result.Success ? Ok(result) : BadRequest(result);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
     /// <summary>
@@ -78,7 +78,7 @@ public class AiEvaluationController : ControllerBase
     public async Task<IActionResult> GenerateComparisonMatrix(Guid tenderId)
     {
         var result = await _mediator.Send(new GenerateComparisonMatrixCommand(tenderId));
-        return result.Success ? Ok(result) : BadRequest(result);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
     /// <summary>
@@ -88,6 +88,6 @@ public class AiEvaluationController : ControllerBase
     public async Task<IActionResult> GenerateAwardJustification(Guid tenderId)
     {
         var result = await _mediator.Send(new GenerateAwardJustificationCommand(tenderId));
-        return result.Success ? Ok(result) : BadRequest(result);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 }

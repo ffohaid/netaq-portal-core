@@ -45,6 +45,10 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<EvaluationReport> EvaluationReports => Set<EvaluationReport>();
     public DbSet<ReportSignature> ReportSignatures => Set<ReportSignature>();
 
+    // Sprint 4 entities - Settings, Knowledge Base, Dashboards
+    public DbSet<KnowledgeSource> KnowledgeSources => Set<KnowledgeSource>();
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../../stores/auth'
@@ -16,8 +16,14 @@ const { t } = useI18n()
 const route = useRoute()
 const authStore = useAuthStore()
 
+const settingsExpanded = ref(false)
+
 const isAdmin = computed(() => {
   return authStore.user?.role === 'SystemAdmin' || authStore.user?.role === 'OrganizationAdmin'
+})
+
+const isSystemAdmin = computed(() => {
+  return authStore.user?.role === 'SystemAdmin'
 })
 
 const navItems = computed(() => [
@@ -52,6 +58,12 @@ const navItems = computed(() => [
     show: true,
   },
   {
+    name: t('nav.reports'),
+    path: '/reports',
+    icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+    show: isAdmin.value,
+  },
+  {
     name: t('nav.audit'),
     path: '/audit',
     icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
@@ -65,8 +77,35 @@ const navItems = computed(() => [
   },
 ])
 
+const settingsItems = computed(() => [
+  {
+    name: t('nav.orgSettings'),
+    path: '/settings/organization',
+    show: isAdmin.value,
+  },
+  {
+    name: t('nav.aiConfig'),
+    path: '/settings/ai',
+    show: isSystemAdmin.value,
+  },
+  {
+    name: t('nav.knowledgeBase'),
+    path: '/settings/knowledge-base',
+    show: isSystemAdmin.value,
+  },
+  {
+    name: t('nav.systemSettings'),
+    path: '/settings/system',
+    show: isSystemAdmin.value,
+  },
+])
+
 function isActive(path: string): boolean {
   return route.path.startsWith(path)
+}
+
+function isSettingsActive(): boolean {
+  return route.path.startsWith('/settings')
 }
 </script>
 
@@ -99,7 +138,7 @@ function isActive(path: string): boolean {
     </div>
 
     <!-- Navigation -->
-    <nav class="flex-1 py-4 space-y-1 px-2">
+    <nav class="flex-1 py-4 space-y-1 px-2 overflow-y-auto">
       <router-link
         v-for="item in navItems.filter(i => i.show)"
         :key="item.path"
@@ -116,6 +155,45 @@ function isActive(path: string): boolean {
         </svg>
         <span v-if="!collapsed" class="text-sm font-medium">{{ item.name }}</span>
       </router-link>
+
+      <!-- Settings Section (Collapsible) -->
+      <div v-if="isAdmin && settingsItems.some(i => i.show)">
+        <button
+          @click="settingsExpanded = !settingsExpanded"
+          class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors"
+          :class="[
+            isSettingsActive()
+              ? 'bg-white/15 text-white'
+              : 'text-white/70 hover:bg-white/10 hover:text-white'
+          ]"
+        >
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span v-if="!collapsed" class="text-sm font-medium flex-1 text-start">{{ t('nav.settings') }}</span>
+          <svg v-if="!collapsed" class="w-4 h-4 transition-transform" :class="settingsExpanded ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
+        <div v-if="(settingsExpanded || isSettingsActive()) && !collapsed" class="ms-4 mt-1 space-y-1">
+          <router-link
+            v-for="item in settingsItems.filter(i => i.show)"
+            :key="item.path"
+            :to="item.path"
+            class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors"
+            :class="[
+              isActive(item.path)
+                ? 'bg-white/15 text-white'
+                : 'text-white/60 hover:bg-white/10 hover:text-white'
+            ]"
+          >
+            <span class="w-1.5 h-1.5 rounded-full" :class="isActive(item.path) ? 'bg-primary-400' : 'bg-white/30'"></span>
+            <span>{{ item.name }}</span>
+          </router-link>
+        </div>
+      </div>
     </nav>
 
     <!-- Collapse Toggle -->

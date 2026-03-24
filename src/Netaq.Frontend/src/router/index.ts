@@ -36,7 +36,7 @@ const router = createRouter({
         {
           path: 'dashboard',
           name: 'Dashboard',
-          component: () => import('../views/dashboard/DashboardView.vue'),
+          component: () => import('../views/dashboard/AdvancedDashboardView.vue'),
         },
         {
           path: 'tasks',
@@ -101,6 +101,38 @@ const router = createRouter({
           name: 'UserManagement',
           component: () => import('../views/admin/UserManagementView.vue'),
           meta: { roles: ['SystemAdmin', 'OrganizationAdmin'] },
+        },
+        // ===== Sprint 4: Reports =====
+        {
+          path: 'reports',
+          name: 'Reports',
+          component: () => import('../views/reports/ReportsView.vue'),
+          meta: { roles: ['SystemAdmin', 'OrganizationAdmin', 'DepartmentManager'] },
+        },
+        // ===== Sprint 4: Settings =====
+        {
+          path: 'settings/organization',
+          name: 'OrganizationSettings',
+          component: () => import('../views/settings/OrganizationSettingsView.vue'),
+          meta: { roles: ['SystemAdmin', 'OrganizationAdmin'] },
+        },
+        {
+          path: 'settings/ai',
+          name: 'AiConfiguration',
+          component: () => import('../views/settings/AiConfigurationView.vue'),
+          meta: { roles: ['SystemAdmin'] },
+        },
+        {
+          path: 'settings/knowledge-base',
+          name: 'KnowledgeBase',
+          component: () => import('../views/settings/KnowledgeBaseView.vue'),
+          meta: { roles: ['SystemAdmin'] },
+        },
+        {
+          path: 'settings/system',
+          name: 'SystemSettings',
+          component: () => import('../views/settings/SystemSettingsView.vue'),
+          meta: { roles: ['SystemAdmin'] },
         },
       ],
     },

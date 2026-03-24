@@ -40,7 +40,7 @@ public class EvaluationController : ControllerBase
             )).ToList()
         ));
 
-        if (!result.Success) return BadRequest(result);
+        if (!result.IsSuccess) return BadRequest(result);
         return Ok(result);
     }
 
@@ -62,7 +62,7 @@ public class EvaluationController : ControllerBase
             request.Scores.Select(s => new ScoreInput(s.CriteriaId, s.Score, s.Justification)).ToList()
         ));
 
-        if (!result.Success) return BadRequest(result);
+        if (!result.IsSuccess) return BadRequest(result);
         return Ok(result);
     }
 
@@ -73,7 +73,7 @@ public class EvaluationController : ControllerBase
     public async Task<IActionResult> GetMyScores(Guid tenderId, Guid proposalId)
     {
         var result = await _mediator.Send(new GetMyScoresQuery(proposalId));
-        return result.Success ? Ok(result) : BadRequest(result);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
     /// <summary>
@@ -84,7 +84,7 @@ public class EvaluationController : ControllerBase
     public async Task<IActionResult> GetEvaluationSummary(Guid tenderId, Guid proposalId)
     {
         var result = await _mediator.Send(new GetEvaluationSummaryQuery(tenderId, proposalId));
-        return result.Success ? Ok(result) : BadRequest(result);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
     /// <summary>
@@ -105,7 +105,7 @@ public class EvaluationController : ControllerBase
             )).ToList()
         ));
 
-        if (!result.Success) return BadRequest(result);
+        if (!result.IsSuccess) return BadRequest(result);
         return Ok(result);
     }
 
@@ -125,7 +125,7 @@ public class EvaluationController : ControllerBase
             request.FinancialValues.Select(f => new FinancialInput(f.ProposalId, f.FinancialValue)).ToList()
         ));
 
-        if (!result.Success) return BadRequest(result);
+        if (!result.IsSuccess) return BadRequest(result);
         return Ok(result);
     }
 
@@ -136,7 +136,7 @@ public class EvaluationController : ControllerBase
     public async Task<IActionResult> GetFinalRankings(Guid tenderId)
     {
         var result = await _mediator.Send(new GetFinalRankingsQuery(tenderId));
-        return result.Success ? Ok(result) : BadRequest(result);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
     // ===== Reports =====
@@ -153,7 +153,7 @@ public class EvaluationController : ControllerBase
             return BadRequest("Invalid report type.");
 
         var result = await _mediator.Send(new GenerateEvaluationReportCommand(tenderId, reportType));
-        if (!result.Success) return BadRequest(result);
+        if (!result.IsSuccess) return BadRequest(result);
         return Ok(result);
     }
 
@@ -167,7 +167,7 @@ public class EvaluationController : ControllerBase
         [FromBody] SignReportRequest request)
     {
         var result = await _mediator.Send(new SignReportCommand(reportId, request.Comments));
-        if (!result.Success) return BadRequest(result);
+        if (!result.IsSuccess) return BadRequest(result);
         return Ok(result);
     }
 }

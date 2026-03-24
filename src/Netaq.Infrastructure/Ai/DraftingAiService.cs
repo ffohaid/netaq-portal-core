@@ -287,8 +287,8 @@ public class DraftingAiService : IAiDraftingService
         TenderType tenderType, CriteriaType criteriaType,
         string? additionalContext)
     {
-        return $"""
-        You are an expert Saudi government procurement advisor specializing in evaluation criteria.
+        var contextLine = additionalContext != null ? $"- Additional Context: {additionalContext}" : "";
+        return $@"You are an expert Saudi government procurement advisor specializing in evaluation criteria.
         
         Tender Information:
         - Title (AR): {titleAr}
@@ -297,7 +297,7 @@ public class DraftingAiService : IAiDraftingService
         - Description (EN): {descriptionEn}
         - Tender Type: {tenderType}
         - Criteria Type Requested: {criteriaType}
-        {(additionalContext != null ? $"- Additional Context: {additionalContext}" : "")}
+        {contextLine}
         
         Based on the Saudi Government Tenders and Procurement Law (نظام المنافسات والمشتريات الحكومية),
         suggest {criteriaType} evaluation criteria for this tender.
@@ -311,29 +311,28 @@ public class DraftingAiService : IAiDraftingService
         
         Respond in JSON format:
         {{
-          "criteria": [
+          ""criteria"": [
             {{
-              "nameAr": "...",
-              "nameEn": "...",
-              "descriptionAr": "...",
-              "descriptionEn": "...",
-              "weight": 30,
-              "passingThreshold": 60,
-              "children": [
+              ""nameAr"": ""..."",
+              ""nameEn"": ""..."",
+              ""descriptionAr"": ""..."",
+              ""descriptionEn"": ""..."",
+              ""weight"": 30,
+              ""passingThreshold"": 60,
+              ""children"": [
                 {{
-                  "nameAr": "...",
-                  "nameEn": "...",
-                  "descriptionAr": "...",
-                  "descriptionEn": "...",
-                  "weight": 50,
-                  "passingThreshold": null
+                  ""nameAr"": ""..."",
+                  ""nameEn"": ""..."",
+                  ""descriptionAr"": ""..."",
+                  ""descriptionEn"": ""..."",
+                  ""weight"": 50,
+                  ""passingThreshold"": null
                 }}
               ]
             }}
           ],
-          "rationale": "Brief explanation of why these criteria were chosen."
-        }}
-        """;
+          ""rationale"": ""Brief explanation of why these criteria were chosen.""
+        }}";
     }
 
     private static string BuildComplianceCheckPrompt(
@@ -349,8 +348,7 @@ public class DraftingAiService : IAiDraftingService
             sectionsText.AppendLine();
         }
 
-        return $"""
-        You are a legal compliance expert for Saudi government procurement.
+        return $@"You are a legal compliance expert for Saudi government procurement.
         
         Review the following tender booklet for compliance with:
         1. Saudi Government Tenders and Procurement Law (نظام المنافسات والمشتريات الحكومية)
@@ -366,18 +364,17 @@ public class DraftingAiService : IAiDraftingService
         
         Respond in JSON format:
         {{
-          "isCompliant": true/false,
-          "issues": [
+          ""isCompliant"": true/false,
+          ""issues"": [
             {{
-              "sectionTitle": "...",
-              "issue": "Description of the compliance issue",
-              "suggestion": "How to fix it",
-              "severity": "High/Medium/Low"
+              ""sectionTitle"": ""..."",
+              ""issue"": ""Description of the compliance issue"",
+              ""suggestion"": ""How to fix it"",
+              ""severity"": ""High/Medium/Low""
             }}
           ],
-          "summary": "Overall compliance assessment summary in both Arabic and English."
-        }}
-        """;
+          ""summary"": ""Overall compliance assessment summary in both Arabic and English.""
+        }}";
     }
 
     private static string BuildBoilerplatePrompt(
@@ -399,8 +396,8 @@ public class DraftingAiService : IAiDraftingService
             _ => "Unknown Section"
         };
 
-        return $"""
-        You are an expert Saudi government procurement document writer.
+        var contextLine2 = additionalContext != null ? $"- Additional Context: {additionalContext}" : "";
+        return $@"You are an expert Saudi government procurement document writer.
         
         Generate professional boilerplate content for the following tender booklet section:
         
@@ -411,7 +408,7 @@ public class DraftingAiService : IAiDraftingService
         - Description (EN): {descriptionEn}
         - Tender Type: {tenderType}
         - Section: {sectionName}
-        {(additionalContext != null ? $"- Additional Context: {additionalContext}" : "")}
+        {contextLine2}
         
         Requirements:
         1. Content must comply with Saudi Government Tenders and Procurement Law.
@@ -421,8 +418,7 @@ public class DraftingAiService : IAiDraftingService
         5. Make the content specific to the tender type ({tenderType}).
         6. Include placeholders like [اسم الجهة] for organization-specific data.
         
-        Generate the HTML content for this section:
-        """;
+        Generate the HTML content for this section:";
     }
 
     // ==================== Response Parsers ====================

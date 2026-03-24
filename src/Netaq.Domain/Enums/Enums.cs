@@ -387,3 +387,51 @@ public enum AiEvaluationFeatureType
     ComparisonMatrix = 5,
     AwardJustificationDraft = 6
 }
+
+// ===== Sprint 4 Enums =====
+
+/// <summary>
+/// Knowledge source type for RAG indexing.
+/// </summary>
+public enum KnowledgeSourceType
+{
+    AutoIndexed = 1,    // Auto-indexed from approved booklets
+    ManualUpload = 2    // Manually uploaded permanent content
+}
+
+/// <summary>
+/// Knowledge source indexing status.
+/// </summary>
+public enum KnowledgeIndexingStatus
+{
+    Pending = 1,
+    InProgress = 2,
+    Completed = 3,
+    Failed = 4,
+    Reindexing = 5
+}
+
+/// <summary>
+/// Dashboard type for role-based views.
+/// </summary>
+public enum DashboardType
+{
+    Executive = 1,      // For SystemAdmin/OrganizationAdmin
+    Operational = 2,    // For DepartmentManager/Coordinator
+    Committee = 3,      // For CommitteeChair/CommitteeMember
+    Monitoring = 4      // For SystemAdmin (SLA/escalation monitoring)
+}
+
+/// <summary>
+/// Report type for system reports.
+/// </summary>
+public enum SystemReportType
+{
+    TenderStatusSummary = 1,
+    WorkflowPerformance = 2,
+    SlaCompliance = 3,
+    UserActivity = 4,
+    AuditSummary = 5,
+    EvaluationSummary = 6,
+    KnowledgeBaseStatistics = 7
+}

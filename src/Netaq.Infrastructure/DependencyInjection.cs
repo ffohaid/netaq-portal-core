@@ -86,6 +86,9 @@ public static class DependencyInjection
         // Sprint 2: Document Export Service
         services.AddScoped<IDocumentExportService, DocumentExportService>();
         
+        // Sprint 4: Dashboard Service
+        services.AddScoped<IDashboardService, DashboardService>();
+        
         return services;
     }
 }

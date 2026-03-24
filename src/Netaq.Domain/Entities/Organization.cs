@@ -42,4 +42,6 @@ public class Organization : BaseEntity
     public ICollection<PermissionMatrix> PermissionMatrices { get; set; } = new List<PermissionMatrix>();
     public ICollection<Tender> Tenders { get; set; } = new List<Tender>();
     public ICollection<Committee> Committees { get; set; } = new List<Committee>();
+    public ICollection<KnowledgeSource> KnowledgeSources { get; set; } = new List<KnowledgeSource>();
+    public ICollection<SystemSetting> SystemSettings { get; set; } = new List<SystemSetting>();
 }

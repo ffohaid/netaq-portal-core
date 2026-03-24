@@ -411,7 +411,7 @@ public class EvaluationAiService : IEvaluationAiService
 
             var prompt = $@"أنت خبير في مقارنة العروض الحكومية. قم بإنشاء مصفوفة مقارنة بين العروض التالية:
 
-{JsonSerializer.Serialize(proposals.Select(p => new {{ p.VendorNameAr, p.TotalValue, p.TechnicalScore }}))}
+{JsonSerializer.Serialize(proposals.Select(p => new { p.VendorNameAr, p.TotalValue, p.TechnicalScore }))}
 
 قدم مقارنة على أبعاد: الجودة الفنية، السعر، الخبرة، الجدول الزمني، فريق العمل.
 أجب بصيغة JSON:
@@ -475,7 +475,7 @@ public class EvaluationAiService : IEvaluationAiService
 القيمة المالية: {topProposal.TotalValue:N2} ريال
 
 باقي المتنافسين:
-{JsonSerializer.Serialize(rankedProposals.Skip(1).Select(p => new {{ p.VendorNameAr, p.FinalScore, p.FinalRank }}))}
+{JsonSerializer.Serialize(rankedProposals.Skip(1).Select(p => new { p.VendorNameAr, p.FinalScore, p.FinalRank }))}
 
 قدم مبررات الترسية وفقاً لنظام المنافسات والمشتريات الحكومية.
 أجب بصيغة JSON:
