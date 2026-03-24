@@ -13,6 +13,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     {
     }
 
+    // Sprint 1 entities
     public DbSet<Organization> Organizations => Set<Organization>();
     public DbSet<User> Users => Set<User>();
     public DbSet<PermissionMatrix> PermissionMatrices => Set<PermissionMatrix>();
@@ -25,6 +26,15 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<SlaTracking> SlaTrackings => Set<SlaTracking>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<AiConfiguration> AiConfigurations => Set<AiConfiguration>();
+    
+    // Sprint 2 entities - Tender & Booklet Drafting
+    public DbSet<Tender> Tenders => Set<Tender>();
+    public DbSet<TenderSection> TenderSections => Set<TenderSection>();
+    public DbSet<TenderCriteria> TenderCriteria => Set<TenderCriteria>();
+    public DbSet<BookletTemplate> BookletTemplates => Set<BookletTemplate>();
+    public DbSet<BookletTemplateSection> BookletTemplateSections => Set<BookletTemplateSection>();
+    public DbSet<Committee> Committees => Set<Committee>();
+    public DbSet<CommitteeMember> CommitteeMembers => Set<CommitteeMember>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

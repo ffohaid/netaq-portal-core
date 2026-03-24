@@ -125,6 +125,18 @@ public enum CommitteeType
 }
 
 /// <summary>
+/// Committee member roles within a committee.
+/// </summary>
+public enum CommitteeMemberRole
+{
+    Chair = 1,
+    ViceChair = 2,
+    Member = 3,
+    Secretary = 4,
+    Observer = 5
+}
+
+/// <summary>
 /// AI provider types.
 /// </summary>
 public enum AiProviderType
@@ -161,5 +173,135 @@ public enum OrganizationRole
     Coordinator = 4,
     CommitteeChair = 5,
     CommitteeMember = 6,
-    Viewer = 7
+    LegalAdvisor = 7,
+    Viewer = 8
+}
+
+/// <summary>
+/// Tender lifecycle status (State Machine).
+/// Draft → PendingApproval → Approved → EvaluationInProgress → EvaluationCompleted → Archived
+/// Cancelled can be reached from any state.
+/// </summary>
+public enum TenderStatus
+{
+    Draft = 1,
+    PendingApproval = 2,
+    Approved = 3,
+    EvaluationInProgress = 4,
+    EvaluationCompleted = 5,
+    Archived = 6,
+    Cancelled = 7
+}
+
+/// <summary>
+/// Tender type categories as per Saudi Government Procurement Law.
+/// </summary>
+public enum TenderType
+{
+    GeneralSupply = 1,
+    PharmaceuticalSupply = 2,
+    MedicalSupply = 3,
+    MilitarySupply = 4,
+    GeneralServices = 5,
+    CateringServices = 6,
+    CityCleaning = 7,
+    BuildingMaintenance = 8,
+    GeneralConsulting = 9,
+    EngineeringDesign = 10,
+    EngineeringSupervision = 11,
+    GeneralConstruction = 12,
+    RoadConstruction = 13,
+    RoadMaintenance = 14,
+    InformationTechnology = 15,
+    FrameworkAgreementSupply = 16,
+    FrameworkAgreementServices = 17,
+    FrameworkAgreementConsulting = 18,
+    RevenueSharing = 19,
+    PerformanceBasedContract = 20,
+    CapacityStudy = 21
+}
+
+/// <summary>
+/// Booklet template categories (7 main categories for 21 templates).
+/// </summary>
+public enum TemplateCategory
+{
+    Supply = 1,
+    Services = 2,
+    Consulting = 3,
+    Engineering = 4,
+    InformationTechnology = 5,
+    Construction = 6,
+    SpecialModels = 7
+}
+
+/// <summary>
+/// Standard booklet section types (8 doors/chapters).
+/// </summary>
+public enum BookletSectionType
+{
+    GeneralTermsAndConditions = 1,
+    TechnicalScopeAndSpecifications = 2,
+    QualificationRequirements = 3,
+    EvaluationCriteria = 4,
+    FinancialTerms = 5,
+    ContractualTerms = 6,
+    LocalContentRequirements = 7,
+    AppendicesAndForms = 8
+}
+
+/// <summary>
+/// Evaluation criteria type (Technical or Financial).
+/// </summary>
+public enum CriteriaType
+{
+    Technical = 1,
+    Financial = 2
+}
+
+/// <summary>
+/// Method used to create a tender booklet.
+/// </summary>
+public enum BookletCreationMethod
+{
+    FromTemplate = 1,
+    AiExtraction = 2,
+    ManualEntry = 3
+}
+
+/// <summary>
+/// AI feature types for the drafting phase.
+/// </summary>
+public enum AiFeatureType
+{
+    SuggestCriteria = 1,
+    LegalComplianceCheck = 2,
+    BoilerplateGeneration = 3
+}
+
+/// <summary>
+/// Document export format types.
+/// </summary>
+public enum ExportFormat
+{
+    Pdf = 1,
+    Docx = 2
+}
+
+/// <summary>
+/// Audit log action categories for tender operations.
+/// </summary>
+public enum TenderAuditAction
+{
+    TenderCreated = 1,
+    TenderUpdated = 2,
+    SectionUpdated = 3,
+    CriteriaUpdated = 4,
+    SubmittedForApproval = 5,
+    Approved = 6,
+    Rejected = 7,
+    Cancelled = 8,
+    Exported = 9,
+    AiSuggestionRequested = 10,
+    AiComplianceCheckRequested = 11
 }

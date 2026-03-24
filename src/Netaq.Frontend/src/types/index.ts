@@ -155,3 +155,186 @@ export interface SendInvitationRequest {
   fullNameEn?: string
   assignedRole: string
 }
+
+// ===== Sprint 2: Tender Types =====
+export type TenderType =
+  | 'GeneralSupply' | 'PharmaceuticalSupply' | 'MedicalSupply' | 'MilitarySupply'
+  | 'GeneralServices' | 'CateringServices' | 'CityCleaning' | 'BuildingMaintenance'
+  | 'GeneralConsulting' | 'EngineeringDesign' | 'EngineeringSupervision'
+  | 'GeneralConstruction' | 'RoadConstruction' | 'RoadMaintenance'
+  | 'InformationTechnology'
+  | 'FrameworkAgreementSupply' | 'FrameworkAgreementServices' | 'FrameworkAgreementConsulting'
+  | 'RevenueSharing' | 'PerformanceBasedContract' | 'CapacityStudy'
+
+export type TenderStatus = 'Draft' | 'UnderReview' | 'Approved' | 'Published' | 'Cancelled' | 'Closed'
+
+export type BookletCreationMethod = 'FromTemplate' | 'AiExtraction' | 'ManualEntry'
+
+export type BookletSectionType =
+  | 'GeneralTermsAndConditions' | 'TechnicalScopeAndSpecifications'
+  | 'QualificationRequirements' | 'EvaluationCriteria'
+  | 'FinancialTerms' | 'ContractualTerms'
+  | 'LocalContentRequirements' | 'AppendicesAndForms'
+
+export type CriteriaType = 'Technical' | 'Financial'
+
+export type TemplateCategory =
+  | 'Supply' | 'Services' | 'Consulting' | 'Engineering'
+  | 'InformationTechnology' | 'Construction' | 'SpecialModels'
+
+export interface Tender {
+  id: string
+  titleAr: string
+  titleEn: string
+  referenceNumber: string
+  descriptionAr?: string
+  descriptionEn?: string
+  tenderType: TenderType
+  estimatedValue: number
+  status: TenderStatus
+  creationMethod: BookletCreationMethod
+  bookletTemplateId?: string
+  submissionOpenDate?: string
+  submissionCloseDate?: string
+  projectStartDate?: string
+  projectEndDate?: string
+  completionPercentage: number
+  technicalWeight: number
+  financialWeight: number
+  createdAt: string
+  createdBy?: string
+}
+
+export interface TenderDetail extends Tender {
+  sections: TenderSection[]
+  criteria: TenderCriteria[]
+}
+
+export interface TenderSection {
+  id: string
+  sectionType: BookletSectionType
+  titleAr: string
+  titleEn: string
+  contentHtml?: string
+  completionPercentage: number
+  orderIndex: number
+  isAiReviewed: boolean
+  lastAutoSavedAt?: string
+}
+
+export interface TenderCriteria {
+  id: string
+  parentId?: string
+  nameAr: string
+  nameEn: string
+  descriptionAr?: string
+  descriptionEn?: string
+  criteriaType: CriteriaType
+  weight: number
+  passingThreshold?: number
+  orderIndex: number
+  isAiSuggested: boolean
+  children: TenderCriteria[]
+}
+
+// ===== Sprint 2: Template Types =====
+export interface BookletTemplate {
+  id: string
+  nameAr: string
+  nameEn: string
+  category: TemplateCategory
+  applicableTenderType: TenderType
+  descriptionAr?: string
+  descriptionEn?: string
+  isActive: boolean
+  version: string
+  sectionCount: number
+}
+
+export interface BookletTemplateSection {
+  id: string
+  sectionType: BookletSectionType
+  titleAr: string
+  titleEn: string
+  defaultContentHtml?: string
+  orderIndex: number
+  guidanceNotesAr?: string
+  guidanceNotesEn?: string
+}
+
+export interface BookletTemplateDetail extends Omit<BookletTemplate, 'sectionCount'> {
+  sections: BookletTemplateSection[]
+}
+
+// ===== Sprint 2: AI Types =====
+export interface AiSuggestion {
+  content: string
+  provider: string
+  model: string
+  confidenceScore: number
+}
+
+export interface ComplianceIssue {
+  sectionTitle: string
+  issue: string
+  suggestion: string
+  severity: 'High' | 'Medium' | 'Low'
+}
+
+export interface AiComplianceCheck {
+  isCompliant: boolean
+  issues: ComplianceIssue[]
+  summary: string
+  provider: string
+  model: string
+}
+
+export interface AiCriteriaSuggestion {
+  suggestedCriteria: TenderCriteria[]
+  rationale: string
+  provider: string
+  model: string
+}
+
+// ===== Sprint 2: Create Tender Request =====
+export interface CreateTenderRequest {
+  titleAr: string
+  titleEn: string
+  descriptionAr?: string
+  descriptionEn?: string
+  tenderType: TenderType
+  estimatedValue: number
+  creationMethod: BookletCreationMethod
+  bookletTemplateId?: string
+  submissionOpenDate?: string
+  submissionCloseDate?: string
+  projectStartDate?: string
+  projectEndDate?: string
+  technicalWeight: number
+  financialWeight: number
+}
+
+export interface UpdateSectionRequest {
+  sectionId: string
+  contentHtml?: string
+  completionPercentage: number
+}
+
+export interface SaveCriteriaRequest {
+  tenderId: string
+  criteria: CriteriaItem[]
+}
+
+export interface CriteriaItem {
+  id?: string
+  parentId?: string
+  nameAr: string
+  nameEn: string
+  descriptionAr?: string
+  descriptionEn?: string
+  criteriaType: CriteriaType
+  weight: number
+  passingThreshold?: number
+  orderIndex: number
+  children?: CriteriaItem[]
+}

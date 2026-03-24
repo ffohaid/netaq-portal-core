@@ -9,6 +9,7 @@ using Netaq.Api.Workers;
 using Netaq.Application;
 using Netaq.Application.Common.Interfaces;
 using Netaq.Infrastructure;
+using Netaq.Infrastructure.Ai;
 using Microsoft.EntityFrameworkCore;
 using Netaq.Infrastructure.Persistence;
 
@@ -68,6 +69,7 @@ builder.Services.AddScoped<INotificationService, SignalRNotificationService>();
 
 // Background Workers
 builder.Services.AddHostedService<SlaTrackingWorker>();
+builder.Services.AddHostedService<DocumentIndexingBackgroundService>();
 
 // JWT Authentication
 builder.Services.AddAuthentication(options =>

@@ -43,6 +43,39 @@ const router = createRouter({
           name: 'Tasks',
           component: () => import('../views/tasks/TaskListView.vue'),
         },
+        // Sprint 2: Tenders
+        {
+          path: 'tenders',
+          name: 'TenderList',
+          component: () => import('../views/tenders/TenderListView.vue'),
+        },
+        {
+          path: 'tenders/create',
+          name: 'CreateTender',
+          component: () => import('../views/tenders/CreateTenderView.vue'),
+        },
+        {
+          path: 'tenders/:id',
+          name: 'TenderDetail',
+          component: () => import('../views/tenders/TenderDetailView.vue'),
+        },
+        {
+          path: 'tenders/:id/edit',
+          name: 'EditTender',
+          component: () => import('../views/tenders/EditTenderView.vue'),
+        },
+        // Sprint 2: Templates
+        {
+          path: 'templates',
+          name: 'TemplateList',
+          component: () => import('../views/templates/TemplateListView.vue'),
+        },
+        {
+          path: 'templates/:id',
+          name: 'TemplateDetail',
+          component: () => import('../views/templates/TemplateDetailView.vue'),
+        },
+        // Existing routes
         {
           path: 'workflows',
           name: 'Workflows',

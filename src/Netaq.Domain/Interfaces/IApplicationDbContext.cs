@@ -8,6 +8,7 @@ namespace Netaq.Domain.Interfaces;
 /// </summary>
 public interface IApplicationDbContext
 {
+    // Sprint 1 entities
     DbSet<Organization> Organizations { get; }
     DbSet<User> Users { get; }
     DbSet<PermissionMatrix> PermissionMatrices { get; }
@@ -20,6 +21,15 @@ public interface IApplicationDbContext
     DbSet<SlaTracking> SlaTrackings { get; }
     DbSet<AuditLog> AuditLogs { get; }
     DbSet<AiConfiguration> AiConfigurations { get; }
+    
+    // Sprint 2 entities - Tender & Booklet Drafting
+    DbSet<Tender> Tenders { get; }
+    DbSet<TenderSection> TenderSections { get; }
+    DbSet<TenderCriteria> TenderCriteria { get; }
+    DbSet<BookletTemplate> BookletTemplates { get; }
+    DbSet<BookletTemplateSection> BookletTemplateSections { get; }
+    DbSet<Committee> Committees { get; }
+    DbSet<CommitteeMember> CommitteeMembers { get; }
     
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -40,4 +40,6 @@ public class Organization : BaseEntity
     public ICollection<Invitation> Invitations { get; set; } = new List<Invitation>();
     public ICollection<AiConfiguration> AiConfigurations { get; set; } = new List<AiConfiguration>();
     public ICollection<PermissionMatrix> PermissionMatrices { get; set; } = new List<PermissionMatrix>();
+    public ICollection<Tender> Tenders { get; set; } = new List<Tender>();
+    public ICollection<Committee> Committees { get; set; } = new List<Committee>();
 }
