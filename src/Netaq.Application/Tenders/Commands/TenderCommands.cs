@@ -384,7 +384,7 @@ public class SubmitTenderForApprovalCommandHandler : IRequestHandler<SubmitTende
                 var assignee = await _context.Users
                     .Where(u => u.OrganizationId == tender.OrganizationId
                         && u.Role == firstStep.RequiredRole
-                        && u.IsActive)
+                        && u.Status == UserStatus.Active)
                     .FirstOrDefaultAsync(cancellationToken);
                 assigneeId = assignee?.Id;
             }
@@ -435,7 +435,7 @@ public class SubmitTenderForApprovalCommandHandler : IRequestHandler<SubmitTende
             Id = Guid.NewGuid(),
             OrganizationId = tender.OrganizationId,
             UserId = _currentUser.UserId,
-            ActionCategory = AuditActionCategory.TenderManagement,
+            ActionCategory = AuditActionCategory.WorkflowAction,
             ActionType = "SubmitForApproval",
             ActionDescription = $"Tender {tender.ReferenceNumber} submitted for approval",
             EntityType = "Tender",
