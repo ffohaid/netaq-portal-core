@@ -239,7 +239,7 @@ const authProviders = [
             <textarea v-model="brandingForm.descriptionAr" rows="3" class="input-field" dir="rtl"></textarea>
           </div>
           <div>
-            <label class="block text="sm font-medium text-gray-700 mb-1">{{ t('settings.descriptionEn') }}</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('settings.descriptionEn') }}</label>
             <textarea v-model="brandingForm.descriptionEn" rows="3" class="input-field" dir="ltr"></textarea>
           </div>
           <div>
