@@ -364,31 +364,36 @@ public class DraftingAiService : IAiDraftingService
 
         return $@"You are a legal compliance expert for Saudi government procurement.
         
-        Review the following tender booklet for compliance with:
-        1. Saudi Government Tenders and Procurement Law (نظام المنافسات والمشتريات الحكومية)
-        2. Its implementing regulations
-        3. NCA cybersecurity controls (where applicable)
-        4. Local content requirements
-        
-        Tender: {titleAr} / {titleEn}
-        Type: {tenderType}
-        
-        Booklet Content:
-        {sectionsText}
-        
-        Respond in JSON format:
-        {{
-          ""isCompliant"": true/false,
-          ""issues"": [
-            {{
-              ""sectionTitle"": ""..."",
-              ""issue"": ""Description of the compliance issue"",
-              ""suggestion"": ""How to fix it"",
-              ""severity"": ""High/Medium/Low""
-            }}
-          ],
-          ""summary"": ""Overall compliance assessment summary in both Arabic and English.""
-        }}";
+Review the following tender booklet for compliance with:
+1. Saudi Government Tenders and Procurement Law (نظام المنافسات والمشتريات الحكومية)
+2. Its implementing regulations
+3. NCA cybersecurity controls (where applicable)
+4. Local content requirements
+
+Tender: {titleAr} / {titleEn}
+Type: {tenderType}
+
+Booklet Content:
+{sectionsText}
+
+IMPORTANT INSTRUCTIONS:
+- Respond with ONLY valid JSON, no markdown, no code blocks, no extra text.
+- Keep issue descriptions concise (max 100 characters each).
+- Keep suggestions concise (max 150 characters each).
+- Summary should be max 300 characters.
+- List only the top 5 most critical issues.
+
+JSON format:
+{{
+  ""isCompliant"": true,
+  ""issues"": [{{
+    ""sectionTitle"": ""Section name"",
+    ""issue"": ""Brief issue description"",
+    ""suggestion"": ""Brief fix suggestion"",
+    ""severity"": ""High""
+  }}],
+  ""summary"": ""Brief overall assessment.""
+}}";
     }
 
     private static string BuildBoilerplatePrompt(
@@ -546,12 +551,42 @@ public class DraftingAiService : IAiDraftingService
         if (jsonEnd > jsonStart)
             return cleaned.Substring(jsonStart, jsonEnd - jsonStart + 1);
 
-        // Fallback: try from first { to last }
-        var lastBrace = cleaned.LastIndexOf('}');
-        if (lastBrace > jsonStart)
-            return cleaned.Substring(jsonStart, lastBrace - jsonStart + 1);
-
-        return cleaned;
+        // JSON is truncated - try to repair by closing open brackets/braces
+        var truncated = cleaned.Substring(jsonStart);
+        // Count open brackets and braces
+        int openBraces = 0;
+        int openBrackets = 0;
+        bool inStr = false;
+        bool esc = false;
+        int lastValidPos = truncated.Length - 1;
+        
+        for (int i = 0; i < truncated.Length; i++)
+        {
+            char ch = truncated[i];
+            if (esc) { esc = false; continue; }
+            if (ch == '\\' && inStr) { esc = true; continue; }
+            if (ch == '"') { inStr = !inStr; continue; }
+            if (inStr) continue;
+            if (ch == '{') openBraces++;
+            else if (ch == '}') openBraces--;
+            else if (ch == '[') openBrackets++;
+            else if (ch == ']') openBrackets--;
+        }
+        
+        // If we're inside a string, close it
+        if (inStr) truncated += "\"";
+        
+        // Remove any trailing incomplete key-value pair
+        // Find the last complete value (ends with , or } or ] or " or digit)
+        var repaired = truncated.TrimEnd();
+        // Remove trailing comma if any
+        if (repaired.EndsWith(",")) repaired = repaired.Substring(0, repaired.Length - 1);
+        
+        // Close open brackets and braces
+        for (int i = 0; i < openBrackets; i++) repaired += "]";
+        for (int i = 0; i < openBraces; i++) repaired += "}";
+        
+        return repaired;
     }
 
     private static AiComplianceCheckDto ParseComplianceCheck(string response)
