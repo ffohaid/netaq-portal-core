@@ -25,6 +25,7 @@ const boilerplateResult = ref<AiSuggestion | null>(null)
 const showAiPanel = ref(false)
 const aiError = ref<string | null>(null)
 const aiActiveAction = ref<'compliance' | 'generate' | 'criteria' | null>(null)
+const criteriaSuggestionResult = ref<any>(null)
 
 // Export State
 const isExporting = ref(false)
@@ -117,9 +118,30 @@ async function checkCompliance() {
   aiLoading.value = false
 }
 
+async function suggestCriteria() {
+  aiLoading.value = true
+  aiError.value = null
+  aiActiveAction.value = 'criteria'
+  criteriaSuggestionResult.value = null
+  try {
+    criteriaSuggestionResult.value = await tenderStore.aiSuggestCriteria(tenderId, 'Technical')
+    if (!criteriaSuggestionResult.value) {
+      aiError.value = locale.value === 'ar'
+        ? 'لم يتم الحصول على اقتراحات. تأكد من إعدادات الذكاء الاصطناعي.'
+        : 'No suggestions received. Please check AI configuration.'
+    }
+  } catch (e: any) {
+    aiError.value = locale.value === 'ar'
+      ? 'حدث خطأ أثناء اقتراح المعايير. يرجى المحاولة مرة أخرى.'
+      : 'Error suggesting criteria. Please try again.'
+  }
+  aiLoading.value = false
+}
+
 function resetAiState() {
   aiActiveAction.value = null
   complianceResult.value = null
+  criteriaSuggestionResult.value = null
   aiError.value = null
   aiLoading.value = false
 }
@@ -540,7 +562,7 @@ onUnmounted(() => {
                 {{ locale === 'ar' ? 'توليد محتوى احترافي لأبواب الكراسة بالذكاء الاصطناعي' : 'Generate professional section content using AI' }}
               </p>
             </button>
-            <button class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-primary-400 hover:bg-primary-50 transition-colors">
+            <button @click="suggestCriteria" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-primary-400 hover:bg-primary-50 transition-colors">
               <svg class="mx-auto h-12 w-12 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
@@ -656,6 +678,89 @@ onUnmounted(() => {
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 {{ locale === 'ar' ? 'إعادة الفحص' : 'Re-check Compliance' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Criteria Suggestion Result -->
+          <div v-if="!aiLoading && !aiError && criteriaSuggestionResult && aiActiveAction === 'criteria'" class="max-w-4xl mx-auto space-y-6">
+            <!-- Back button -->
+            <button @click="resetAiState" class="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              {{ locale === 'ar' ? 'العودة للمساعد الذكي' : 'Back to AI Assistant' }}
+            </button>
+
+            <!-- Criteria Header -->
+            <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-6">
+              <div class="flex items-center gap-4">
+                <div class="flex-shrink-0">
+                  <svg class="w-12 h-12 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 class="text-xl font-bold text-blue-800">
+                    {{ locale === 'ar' ? 'معايير التقييم المقترحة' : 'Suggested Evaluation Criteria' }}
+                  </h2>
+                  <p class="text-sm mt-1 text-blue-600">
+                    {{ locale === 'ar' ? 'معايير مقترحة بناءً على نوع المنافسة ومحتواها' : 'Criteria suggested based on tender type and content' }}
+                  </p>
+                </div>
+                <div class="ms-auto">
+                  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-200 text-blue-800">
+                    {{ criteriaSuggestionResult.suggestedCriteria?.length || 0 }} {{ locale === 'ar' ? 'معيار' : 'Criteria' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Rationale -->
+            <div v-if="criteriaSuggestionResult.rationale" class="bg-white rounded-xl border border-gray-200 p-6">
+              <h3 class="text-lg font-semibold text-gray-900 mb-3">{{ locale === 'ar' ? 'المبررات' : 'Rationale' }}</h3>
+              <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{{ criteriaSuggestionResult.rationale }}</p>
+              <div class="flex items-center gap-4 mt-4 pt-4 border-t border-gray-100">
+                <span class="text-xs text-gray-400">{{ t('ai.provider') }}: {{ criteriaSuggestionResult.provider }}</span>
+                <span class="text-xs text-gray-400">{{ t('ai.model') || 'Model' }}: {{ criteriaSuggestionResult.model }}</span>
+              </div>
+            </div>
+
+            <!-- Criteria List -->
+            <div v-if="criteriaSuggestionResult.suggestedCriteria?.length" class="space-y-4">
+              <h3 class="text-lg font-semibold text-gray-900">{{ locale === 'ar' ? 'المعايير المقترحة' : 'Suggested Criteria' }}</h3>
+              <div v-for="(criterion, idx) in criteriaSuggestionResult.suggestedCriteria" :key="idx" class="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-sm transition-shadow">
+                <div class="flex items-start justify-between mb-3">
+                  <div class="flex items-center gap-3">
+                    <span class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-sm font-bold text-blue-600">{{ idx + 1 }}</span>
+                    <span class="font-medium text-gray-900">{{ locale === 'ar' ? (criterion.nameAr || criterion.titleAr) : (criterion.nameEn || criterion.titleEn) }}</span>
+                  </div>
+                  <span class="text-sm font-semibold text-blue-600">{{ criterion.weight }}%</span>
+                </div>
+                <div class="ps-11">
+                  <p v-if="criterion.descriptionAr || criterion.descriptionEn" class="text-sm text-gray-600">
+                    {{ locale === 'ar' ? criterion.descriptionAr : criterion.descriptionEn }}
+                  </p>
+                  <!-- Sub-criteria -->
+                  <div v-if="criterion.subCriteria?.length" class="mt-3 space-y-2">
+                    <div v-for="(sub, subIdx) in criterion.subCriteria" :key="subIdx" class="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                      <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-700">{{ locale === 'ar' ? (sub.nameAr || sub.titleAr) : (sub.nameEn || sub.titleEn) }}</span>
+                        <span class="text-xs font-medium text-gray-500">{{ sub.weight }}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Re-suggest button -->
+            <div class="flex justify-center pt-4">
+              <button @click="suggestCriteria" class="bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {{ locale === 'ar' ? 'إعادة الاقتراح' : 'Re-suggest Criteria' }}
               </button>
             </div>
           </div>
