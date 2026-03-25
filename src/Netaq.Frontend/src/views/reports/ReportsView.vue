@@ -88,6 +88,22 @@ function getUserName(user: any) {
       </svg>
     </div>
 
+    <!-- Error State -->
+    <div v-else-if="dashboardStore.error" class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+      <svg class="w-12 h-12 text-red-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+      </svg>
+      <p class="text-red-700 font-medium">{{ dashboardStore.error }}</p>
+    </div>
+
+    <!-- Empty State -->
+    <div v-else-if="!dashboardStore.isLoading && !dashboardStore.tenderReport && activeReport === 'tenders'" class="text-center py-12 text-gray-400">
+      <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+      <p class="text-lg font-medium">{{ locale === 'ar' ? '\u0644\u0627 \u062a\u0648\u062c\u062f \u0628\u064a\u0627\u0646\u0627\u062a \u0644\u0644\u062a\u0642\u0631\u064a\u0631' : 'No report data available' }}</p>
+    </div>
+
     <!-- Tender Status Report -->
     <template v-else-if="activeReport === 'tenders' && dashboardStore.tenderReport">
       <div class="space-y-6">

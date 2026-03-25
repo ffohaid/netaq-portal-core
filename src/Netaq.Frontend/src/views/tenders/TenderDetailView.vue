@@ -33,13 +33,14 @@ function getTitle(item: { titleAr: string; titleEn: string } | { nameAr: string;
 }
 
 function getStatusClass(status: TenderStatus) {
-  const classes: Record<TenderStatus, string> = {
+  const classes: Record<string, string> = {
     Draft: 'bg-gray-100 text-gray-700',
-    UnderReview: 'bg-yellow-100 text-yellow-700',
+    PendingApproval: 'bg-yellow-100 text-yellow-700',
     Approved: 'bg-green-100 text-green-700',
-    Published: 'bg-blue-100 text-blue-700',
+    EvaluationInProgress: 'bg-blue-100 text-blue-700',
+    EvaluationCompleted: 'bg-emerald-100 text-emerald-700',
+    Archived: 'bg-purple-100 text-purple-700',
     Cancelled: 'bg-red-100 text-red-700',
-    Closed: 'bg-gray-200 text-gray-600',
   }
   return classes[status] || 'bg-gray-100 text-gray-700'
 }
@@ -236,8 +237,23 @@ onUnmounted(() => {
 
         <!-- Sections Tab -->
         <div v-if="activeTab === 'sections'" class="flex" style="min-height: 600px;">
+          <!-- Empty State when no sections -->
+          <div v-if="!tenderStore.currentTender.sections?.length" class="flex-1 flex flex-col items-center justify-center py-16 text-gray-400">
+            <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p class="text-lg font-medium">{{ locale === 'ar' ? 'لا توجد أبواب بعد' : 'No sections yet' }}</p>
+            <p class="text-sm mt-2">{{ locale === 'ar' ? 'سيتم إنشاء الأبواب عند اختيار نموذج أو إدخال يدوي' : 'Sections will be created when a template is selected or manual entry is used' }}</p>
+            <router-link
+              v-if="tenderStore.currentTender.status === 'Draft'"
+              :to="`/tenders/${tenderId}/edit`"
+              class="mt-4 bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors text-sm"
+            >
+              {{ locale === 'ar' ? 'تعديل المنافسة' : 'Edit Tender' }}
+            </router-link>
+          </div>
           <!-- Section List -->
-          <div class="w-72 border-e border-gray-200 bg-gray-50">
+          <div v-else class="w-72 border-e border-gray-200 bg-gray-50">
             <div class="p-4">
               <h3 class="text-sm font-semibold text-gray-700">{{ t('sections.title') }}</h3>
             </div>

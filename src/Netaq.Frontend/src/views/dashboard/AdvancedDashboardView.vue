@@ -57,7 +57,7 @@ async function switchView(view: 'executive' | 'operational' | 'committee' | 'mon
 }
 
 function getTitle(item: any) {
-  return locale.value === 'ar' ? (item.titleAr || item.nameAr) : (item.titleEn || item.nameEn)
+  return locale.value === 'ar' ? (item.titleAr || item.nameAr || item.committeeNameAr) : (item.titleEn || item.nameEn || item.committeeNameEn)
 }
 
 function formatDate(dateStr: string) {
@@ -78,6 +78,11 @@ function formatDateTime(dateStr: string) {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+function formatCurrency(value: number) {
+  if (!value) return '0'
+  return new Intl.NumberFormat(locale.value === 'ar' ? 'ar-SA' : 'en-US').format(value)
 }
 
 function getSlaClass(status: string) {
@@ -101,9 +106,12 @@ function getSlaText(status: string) {
 function getStatusClass(status: string) {
   switch (status) {
     case 'Draft': return 'bg-gray-100 text-gray-700'
-    case 'UnderReview': return 'bg-yellow-100 text-yellow-700'
+    case 'PendingApproval': return 'bg-yellow-100 text-yellow-700'
     case 'Approved': return 'bg-green-100 text-green-700'
     case 'EvaluationInProgress': return 'bg-blue-100 text-blue-700'
+    case 'EvaluationCompleted': return 'bg-emerald-100 text-emerald-700'
+    case 'Archived': return 'bg-purple-100 text-purple-700'
+    case 'Cancelled': return 'bg-red-100 text-red-700'
     default: return 'bg-gray-100 text-gray-700'
   }
 }
@@ -166,38 +174,81 @@ function getStatusClass(status: string) {
       </svg>
     </div>
 
+    <!-- Error State -->
+    <div v-else-if="dashboardStore.error" class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+      <svg class="w-12 h-12 text-red-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+      </svg>
+      <p class="text-red-700 font-medium">{{ dashboardStore.error }}</p>
+    </div>
+
     <!-- Executive Dashboard -->
     <template v-else-if="activeView === 'executive' && dashboardStore.executiveDashboard">
       <div class="space-y-6">
         <!-- Tender Stats -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
-          <div class="card text-center">
-            <p class="text-xs text-gray-500">{{ t('dashboard.totalTenders') }}</p>
-            <p class="text-2xl font-bold text-gray-900">{{ dashboardStore.executiveDashboard.tenderStats.totalTenders }}</p>
+        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-4">
+          <div class="card bg-gradient-to-br from-primary-50 to-white border border-primary-100">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs text-gray-500 mb-1">{{ t('dashboard.totalTenders') }}</p>
+                <p class="text-3xl font-bold text-primary-700">{{ dashboardStore.executiveDashboard.tenderStatistics.totalTenders }}</p>
+              </div>
+              <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                </svg>
+              </div>
+            </div>
+            <div class="mt-3 flex items-center gap-3 text-xs">
+              <span class="text-gray-500">{{ t('tenders.status.Draft') }}: <strong class="text-gray-700">{{ dashboardStore.executiveDashboard.tenderStatistics.draftCount }}</strong></span>
+              <span class="text-yellow-600">{{ t('tenders.status.PendingApproval') }}: <strong>{{ dashboardStore.executiveDashboard.tenderStatistics.pendingApprovalCount }}</strong></span>
+            </div>
           </div>
-          <div class="card text-center">
-            <p class="text-xs text-gray-500">{{ t('tenders.status.Draft') }}</p>
-            <p class="text-2xl font-bold text-gray-500">{{ dashboardStore.executiveDashboard.tenderStats.draftCount }}</p>
+          <div class="card bg-gradient-to-br from-green-50 to-white border border-green-100">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs text-gray-500 mb-1">{{ t('tenders.status.Approved') }}</p>
+                <p class="text-3xl font-bold text-green-700">{{ dashboardStore.executiveDashboard.tenderStatistics.approvedCount }}</p>
+              </div>
+              <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <div class="mt-3 text-xs text-gray-500">
+              {{ t('dashboard.evaluating') }}: <strong class="text-blue-600">{{ dashboardStore.executiveDashboard.tenderStatistics.evaluationInProgressCount }}</strong>
+            </div>
           </div>
-          <div class="card text-center">
-            <p class="text-xs text-gray-500">{{ t('tenders.status.UnderReview') }}</p>
-            <p class="text-2xl font-bold text-yellow-600">{{ dashboardStore.executiveDashboard.tenderStats.pendingApprovalCount }}</p>
+          <div class="card bg-gradient-to-br from-blue-50 to-white border border-blue-100">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs text-gray-500 mb-1">{{ t('dashboard.completed') }}</p>
+                <p class="text-3xl font-bold text-blue-700">{{ dashboardStore.executiveDashboard.tenderStatistics.evaluationCompletedCount }}</p>
+              </div>
+              <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+            <div class="mt-3 text-xs text-gray-500">
+              {{ t('tenders.status.Cancelled') }}: <strong class="text-red-600">{{ dashboardStore.executiveDashboard.tenderStatistics.cancelledCount }}</strong>
+            </div>
           </div>
-          <div class="card text-center">
-            <p class="text-xs text-gray-500">{{ t('tenders.status.Approved') }}</p>
-            <p class="text-2xl font-bold text-green-600">{{ dashboardStore.executiveDashboard.tenderStats.approvedCount }}</p>
-          </div>
-          <div class="card text-center">
-            <p class="text-xs text-gray-500">{{ t('dashboard.evaluating') }}</p>
-            <p class="text-2xl font-bold text-blue-600">{{ dashboardStore.executiveDashboard.tenderStats.evaluationInProgressCount }}</p>
-          </div>
-          <div class="card text-center">
-            <p class="text-xs text-gray-500">{{ t('dashboard.completed') }}</p>
-            <p class="text-2xl font-bold text-emerald-600">{{ dashboardStore.executiveDashboard.tenderStats.completedCount }}</p>
-          </div>
-          <div class="card text-center">
-            <p class="text-xs text-gray-500">{{ t('tenders.status.Cancelled') }}</p>
-            <p class="text-2xl font-bold text-red-600">{{ dashboardStore.executiveDashboard.tenderStats.cancelledCount }}</p>
+          <div class="card bg-gradient-to-br from-amber-50 to-white border border-amber-100">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs text-gray-500 mb-1">{{ t('dashboard.estimatedValue') }}</p>
+                <p class="text-2xl font-bold text-amber-700">{{ formatCurrency(dashboardStore.executiveDashboard.tenderStatistics.totalEstimatedValue) }}</p>
+              </div>
+              <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <div class="mt-3 text-xs text-gray-500">{{ t('common.sar') }}</div>
           </div>
         </div>
 
@@ -207,19 +258,19 @@ function getStatusClass(status: string) {
             <h3 class="text-sm font-semibold text-gray-700 mb-4">{{ t('dashboard.workflowStats') }}</h3>
             <div class="grid grid-cols-2 gap-4">
               <div class="text-center p-3 bg-gray-50 rounded-lg">
-                <p class="text-2xl font-bold text-gray-900">{{ dashboardStore.executiveDashboard.workflowStats.totalWorkflows }}</p>
+                <p class="text-2xl font-bold text-gray-900">{{ dashboardStore.executiveDashboard.workflowStatistics.totalInstances }}</p>
                 <p class="text-xs text-gray-500">{{ t('dashboard.total') }}</p>
               </div>
               <div class="text-center p-3 bg-blue-50 rounded-lg">
-                <p class="text-2xl font-bold text-blue-600">{{ dashboardStore.executiveDashboard.workflowStats.activeCount }}</p>
+                <p class="text-2xl font-bold text-blue-600">{{ dashboardStore.executiveDashboard.workflowStatistics.activeCount }}</p>
                 <p class="text-xs text-gray-500">{{ t('dashboard.active') }}</p>
               </div>
               <div class="text-center p-3 bg-green-50 rounded-lg">
-                <p class="text-2xl font-bold text-green-600">{{ dashboardStore.executiveDashboard.workflowStats.completedCount }}</p>
+                <p class="text-2xl font-bold text-green-600">{{ dashboardStore.executiveDashboard.workflowStatistics.completedCount }}</p>
                 <p class="text-xs text-gray-500">{{ t('dashboard.completed') }}</p>
               </div>
               <div class="text-center p-3 bg-red-50 rounded-lg">
-                <p class="text-2xl font-bold text-red-600">{{ dashboardStore.executiveDashboard.workflowStats.rejectedCount }}</p>
+                <p class="text-2xl font-bold text-red-600">{{ dashboardStore.executiveDashboard.workflowStatistics.rejectedCount }}</p>
                 <p class="text-xs text-gray-500">{{ t('dashboard.rejected') }}</p>
               </div>
             </div>
@@ -229,27 +280,50 @@ function getStatusClass(status: string) {
             <h3 class="text-sm font-semibold text-gray-700 mb-4">{{ t('dashboard.userStats') }}</h3>
             <div class="grid grid-cols-3 gap-4">
               <div class="text-center p-3 bg-gray-50 rounded-lg">
-                <p class="text-2xl font-bold text-gray-900">{{ dashboardStore.executiveDashboard.userStats.totalUsers }}</p>
+                <p class="text-2xl font-bold text-gray-900">{{ dashboardStore.executiveDashboard.userStatistics.totalUsers }}</p>
                 <p class="text-xs text-gray-500">{{ t('dashboard.total') }}</p>
               </div>
               <div class="text-center p-3 bg-green-50 rounded-lg">
-                <p class="text-2xl font-bold text-green-600">{{ dashboardStore.executiveDashboard.userStats.activeUsers }}</p>
+                <p class="text-2xl font-bold text-green-600">{{ dashboardStore.executiveDashboard.userStatistics.activeUsers }}</p>
                 <p class="text-xs text-gray-500">{{ t('dashboard.active') }}</p>
               </div>
               <div class="text-center p-3 bg-yellow-50 rounded-lg">
-                <p class="text-2xl font-bold text-yellow-600">{{ dashboardStore.executiveDashboard.userStats.invitedUsers }}</p>
+                <p class="text-2xl font-bold text-yellow-600">{{ dashboardStore.executiveDashboard.userStatistics.invitedUsers }}</p>
                 <p class="text-xs text-gray-500">{{ t('dashboard.invited') }}</p>
               </div>
             </div>
           </div>
         </div>
 
+        <!-- Evaluation Stats -->
+        <div class="card" v-if="dashboardStore.executiveDashboard.evaluationStatistics">
+          <h3 class="text-sm font-semibold text-gray-700 mb-4">{{ t('dashboard.evaluationStats') }}</h3>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="text-center p-3 bg-gray-50 rounded-lg">
+              <p class="text-2xl font-bold text-gray-900">{{ dashboardStore.executiveDashboard.evaluationStatistics.totalProposals }}</p>
+              <p class="text-xs text-gray-500">{{ t('dashboard.totalProposals') }}</p>
+            </div>
+            <div class="text-center p-3 bg-green-50 rounded-lg">
+              <p class="text-2xl font-bold text-green-600">{{ dashboardStore.executiveDashboard.evaluationStatistics.compliancePassedCount }}</p>
+              <p class="text-xs text-gray-500">{{ t('dashboard.compliancePassed') }}</p>
+            </div>
+            <div class="text-center p-3 bg-blue-50 rounded-lg">
+              <p class="text-2xl font-bold text-blue-600">{{ dashboardStore.executiveDashboard.evaluationStatistics.recommendedCount }}</p>
+              <p class="text-xs text-gray-500">{{ t('dashboard.recommended') }}</p>
+            </div>
+            <div class="text-center p-3 bg-red-50 rounded-lg">
+              <p class="text-2xl font-bold text-red-600">{{ dashboardStore.executiveDashboard.evaluationStatistics.excludedCount }}</p>
+              <p class="text-xs text-gray-500">{{ t('dashboard.excluded') }}</p>
+            </div>
+          </div>
+        </div>
+
         <!-- Tenders by Type -->
-        <div class="card" v-if="dashboardStore.executiveDashboard.tendersByType?.length">
+        <div class="card" v-if="dashboardStore.executiveDashboard.tenderStatistics.tendersByType?.length">
           <h3 class="text-sm font-semibold text-gray-700 mb-4">{{ t('dashboard.tendersByType') }}</h3>
           <div class="space-y-2">
             <div
-              v-for="item in dashboardStore.executiveDashboard.tendersByType"
+              v-for="item in dashboardStore.executiveDashboard.tenderStatistics.tendersByType"
               :key="item.tenderType"
               class="flex items-center justify-between"
             >
@@ -258,7 +332,7 @@ function getStatusClass(status: string) {
                 <div class="w-32 bg-gray-100 rounded-full h-2">
                   <div
                     class="bg-primary-500 h-2 rounded-full"
-                    :style="{ width: `${(item.count / dashboardStore.executiveDashboard!.tenderStats.totalTenders) * 100}%` }"
+                    :style="{ width: `${(item.count / dashboardStore.executiveDashboard!.tenderStatistics.totalTenders) * 100}%` }"
                   ></div>
                 </div>
                 <span class="text-sm font-medium text-gray-900 w-8 text-end">{{ item.count }}</span>
@@ -267,19 +341,19 @@ function getStatusClass(status: string) {
           </div>
         </div>
 
-        <!-- Recent Audit -->
-        <div class="card" v-if="dashboardStore.executiveDashboard.recentAuditLogs?.length">
+        <!-- Recent Activity -->
+        <div class="card" v-if="dashboardStore.executiveDashboard.recentActivity?.length">
           <h3 class="text-sm font-semibold text-gray-700 mb-4">{{ t('dashboard.recentActivity') }}</h3>
           <div class="space-y-3">
             <div
-              v-for="log in dashboardStore.executiveDashboard.recentAuditLogs"
+              v-for="log in dashboardStore.executiveDashboard.recentActivity"
               :key="log.id"
               class="flex items-start gap-3 text-sm"
             >
               <div class="w-2 h-2 rounded-full bg-primary-400 mt-1.5 flex-shrink-0"></div>
               <div class="flex-1">
                 <p class="text-gray-700">{{ log.actionDescription }}</p>
-                <p class="text-xs text-gray-400">{{ formatDateTime(log.timestamp) }}</p>
+                <p class="text-xs text-gray-400">{{ log.userName }} - {{ formatDateTime(log.timestamp) }}</p>
               </div>
             </div>
           </div>
@@ -294,19 +368,19 @@ function getStatusClass(status: string) {
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div class="card text-center">
             <p class="text-xs text-gray-500">{{ t('dashboard.pendingTasks') }}</p>
-            <p class="text-2xl font-bold text-yellow-600">{{ dashboardStore.operationalDashboard.taskStats.pendingCount }}</p>
+            <p class="text-2xl font-bold text-yellow-600">{{ dashboardStore.operationalDashboard.taskDashboard.pendingCount }}</p>
           </div>
           <div class="card text-center">
             <p class="text-xs text-gray-500">{{ t('tasks.inProgress') }}</p>
-            <p class="text-2xl font-bold text-blue-600">{{ dashboardStore.operationalDashboard.taskStats.inProgressCount }}</p>
+            <p class="text-2xl font-bold text-blue-600">{{ dashboardStore.operationalDashboard.taskDashboard.inProgressCount }}</p>
           </div>
           <div class="card text-center">
             <p class="text-xs text-gray-500">{{ t('dashboard.completedTasks') }}</p>
-            <p class="text-2xl font-bold text-green-600">{{ dashboardStore.operationalDashboard.taskStats.completedCount }}</p>
+            <p class="text-2xl font-bold text-green-600">{{ dashboardStore.operationalDashboard.taskDashboard.completedCount }}</p>
           </div>
           <div class="card text-center">
             <p class="text-xs text-gray-500">{{ t('dashboard.overdueTasks') }}</p>
-            <p class="text-2xl font-bold text-red-600">{{ dashboardStore.operationalDashboard.taskStats.overdueCount }}</p>
+            <p class="text-2xl font-bold text-red-600">{{ dashboardStore.operationalDashboard.taskDashboard.overdueCount }}</p>
           </div>
         </div>
 
@@ -349,11 +423,11 @@ function getStatusClass(status: string) {
         </div>
 
         <!-- Upcoming Deadlines -->
-        <div class="card" v-if="dashboardStore.operationalDashboard.taskStats.upcomingDeadlines?.length">
+        <div class="card" v-if="dashboardStore.operationalDashboard.taskDashboard.upcomingDeadlines?.length">
           <h3 class="text-sm font-semibold text-gray-700 mb-4">{{ t('dashboard.upcomingDeadlines') }}</h3>
           <div class="space-y-3">
             <div
-              v-for="deadline in dashboardStore.operationalDashboard.taskStats.upcomingDeadlines"
+              v-for="deadline in dashboardStore.operationalDashboard.taskDashboard.upcomingDeadlines"
               :key="deadline.taskId"
               class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
             >
@@ -372,17 +446,17 @@ function getStatusClass(status: string) {
     <template v-else-if="activeView === 'committee' && dashboardStore.committeeDashboard">
       <div class="space-y-6">
         <!-- Active Committees -->
-        <div class="card" v-if="dashboardStore.committeeDashboard.activeCommittees?.length">
+        <div class="card" v-if="dashboardStore.committeeDashboard.myCommittees?.length">
           <h3 class="text-sm font-semibold text-gray-700 mb-4">{{ t('dashboard.activeCommittees') }}</h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div
-              v-for="committee in dashboardStore.committeeDashboard.activeCommittees"
+              v-for="committee in dashboardStore.committeeDashboard.myCommittees"
               :key="committee.committeeId"
               class="p-4 border rounded-lg"
             >
               <h4 class="font-semibold text-gray-900">{{ getTitle(committee) }}</h4>
               <div class="flex gap-4 mt-2 text-xs text-gray-500">
-                <span>{{ t(`roles.${committee.memberRole}`) }}</span>
+                <span>{{ committee.memberRole }}</span>
                 <span>{{ committee.committeeType }}</span>
               </div>
             </div>
@@ -417,15 +491,14 @@ function getStatusClass(status: string) {
               class="flex items-center justify-between p-3 bg-blue-50 rounded-lg"
             >
               <div>
-                <p class="text-sm font-medium text-gray-900">{{ locale === 'ar' ? sig.reportTitleAr : sig.reportTitleEn }}</p>
-                <p class="text-xs text-gray-500">{{ sig.reportType }} - {{ formatDate(sig.createdAt) }}</p>
+                <p class="text-sm font-medium text-gray-900">{{ sig.reportType }} - {{ formatDate(sig.createdAt) }}</p>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Empty State -->
-        <div v-if="!dashboardStore.committeeDashboard.activeCommittees?.length && !dashboardStore.committeeDashboard.pendingEvaluations?.length" class="text-center py-12 text-gray-400">
+        <div v-if="!dashboardStore.committeeDashboard.myCommittees?.length && !dashboardStore.committeeDashboard.pendingEvaluations?.length" class="text-center py-12 text-gray-400">
           <p class="text-lg font-medium">{{ t('dashboard.noCommitteeData') }}</p>
         </div>
       </div>
@@ -438,24 +511,24 @@ function getStatusClass(status: string) {
         <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
           <div class="card text-center">
             <p class="text-xs text-gray-500">{{ t('dashboard.totalTracked') }}</p>
-            <p class="text-2xl font-bold text-gray-900">{{ dashboardStore.monitoringDashboard.slaStats.totalTracked }}</p>
+            <p class="text-2xl font-bold text-gray-900">{{ dashboardStore.monitoringDashboard.slaStatistics.totalTracked }}</p>
           </div>
           <div class="card text-center">
             <p class="text-xs text-gray-500">{{ t('tasks.sla.onTrack') }}</p>
-            <p class="text-2xl font-bold text-green-600">{{ dashboardStore.monitoringDashboard.slaStats.onTrackCount }}</p>
+            <p class="text-2xl font-bold text-green-600">{{ dashboardStore.monitoringDashboard.slaStatistics.onTrackCount }}</p>
           </div>
           <div class="card text-center">
             <p class="text-xs text-gray-500">{{ t('tasks.sla.atRisk') }}</p>
-            <p class="text-2xl font-bold text-yellow-600">{{ dashboardStore.monitoringDashboard.slaStats.atRiskCount }}</p>
+            <p class="text-2xl font-bold text-yellow-600">{{ dashboardStore.monitoringDashboard.slaStatistics.atRiskCount }}</p>
           </div>
           <div class="card text-center">
             <p class="text-xs text-gray-500">{{ t('tasks.sla.overdue') }}</p>
-            <p class="text-2xl font-bold text-red-600">{{ dashboardStore.monitoringDashboard.slaStats.overdueCount }}</p>
+            <p class="text-2xl font-bold text-red-600">{{ dashboardStore.monitoringDashboard.slaStatistics.overdueCount }}</p>
           </div>
           <div class="card text-center">
             <p class="text-xs text-gray-500">{{ t('dashboard.complianceRate') }}</p>
-            <p class="text-2xl font-bold" :class="dashboardStore.monitoringDashboard.slaStats.complianceRate >= 80 ? 'text-green-600' : 'text-red-600'">
-              {{ dashboardStore.monitoringDashboard.slaStats.complianceRate.toFixed(1) }}%
+            <p class="text-2xl font-bold" :class="dashboardStore.monitoringDashboard.slaStatistics.complianceRate >= 80 ? 'text-green-600' : 'text-red-600'">
+              {{ dashboardStore.monitoringDashboard.slaStatistics.complianceRate.toFixed(1) }}%
             </p>
           </div>
         </div>

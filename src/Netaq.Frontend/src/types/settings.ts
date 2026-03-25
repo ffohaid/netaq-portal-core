@@ -74,73 +74,96 @@ export interface SystemSetting {
 }
 
 // ===== Sprint 4: Dashboard Types =====
+// Updated to match actual API response field names (camelCase from C# PascalCase)
 
 export interface ExecutiveDashboard {
-  tenderStats: TenderStatsDto
-  workflowStats: WorkflowStatsDto
-  userStats: UserStatsDto
-  recentAuditLogs: AuditLogSummary[]
-  tendersByType: TenderByTypeDto[]
-  tendersByMonth: TenderByMonthDto[]
+  tenderStatistics: TenderStatisticsDto
+  workflowStatistics: WorkflowStatisticsDto
+  userStatistics: UserStatisticsDto
+  evaluationStatistics: EvaluationStatisticsDto
+  recentActivity: RecentActivityDto[]
 }
 
 export interface OperationalDashboard {
-  taskStats: TaskDashboardDto
+  taskDashboard: TaskDashboardDto
   myTenders: TenderSummaryDto[]
-  pendingEvaluations: PendingEvaluationDto[]
-  pendingSignatures: PendingSignatureDto[]
 }
 
 export interface CommitteeDashboard {
-  activeCommittees: CommitteeInfoDto[]
+  myCommittees: CommitteeSummaryDto[]
   pendingEvaluations: PendingEvaluationDto[]
   pendingSignatures: PendingSignatureDto[]
 }
 
 export interface MonitoringDashboard {
-  slaStats: SlaStatisticsDto
+  slaStatistics: SlaStatisticsDto
   escalatedTasks: EscalatedTaskDto[]
   auditCategories: AuditCategoryCountDto[]
+  knowledgeBaseStats: KnowledgeBaseStatsDto
 }
 
-export interface TenderStatsDto {
+export interface TenderStatisticsDto {
   totalTenders: number
   draftCount: number
   pendingApprovalCount: number
   approvedCount: number
   evaluationInProgressCount: number
-  completedCount: number
+  evaluationCompletedCount: number
+  archivedCount: number
   cancelledCount: number
+  totalEstimatedValue: number
+  tendersByType: TenderTypeCountDto[]
+  tendersByMonth: MonthlyCountDto[]
 }
 
-export interface WorkflowStatsDto {
-  totalWorkflows: number
-  activeCount: number
-  completedCount: number
-  rejectedCount: number
-}
-
-export interface UserStatsDto {
-  totalUsers: number
-  activeUsers: number
-  invitedUsers: number
-}
-
-export interface AuditLogSummary {
-  id: string
-  actionType: string
-  actionDescription: string
-  timestamp: string
-}
-
-export interface TenderByTypeDto {
+export interface TenderTypeCountDto {
   tenderType: string
   count: number
 }
 
-export interface TenderByMonthDto {
-  month: string
+export interface MonthlyCountDto {
+  year: number
+  month: number
   count: number
+}
+
+export interface WorkflowStatisticsDto {
+  totalInstances: number
+  activeCount: number
+  completedCount: number
+  rejectedCount: number
+  averageCompletionDays: number
+}
+
+export interface UserStatisticsDto {
+  totalUsers: number
+  activeUsers: number
+  invitedUsers: number
+  suspendedUsers: number
+  usersByRole: RoleCountDto[]
+}
+
+export interface RoleCountDto {
+  role: string
+  count: number
+}
+
+export interface EvaluationStatisticsDto {
+  totalProposals: number
+  compliancePassedCount: number
+  complianceFailedCount: number
+  technicalEvaluationCount: number
+  financialEvaluationCount: number
+  recommendedCount: number
+  excludedCount: number
+}
+
+export interface RecentActivityDto {
+  id: string
+  actionType: string
+  actionDescription: string
+  timestamp: string
+  userName: string
 }
 
 export interface TaskDashboardDto {
@@ -167,8 +190,10 @@ export interface TenderSummaryDto {
   id: string
   titleAr: string
   titleEn: string
+  referenceNumber: string
   status: string
   completionPercentage: number
+  createdAt: string
 }
 
 export interface PendingEvaluationDto {
@@ -182,16 +207,15 @@ export interface PendingEvaluationDto {
 
 export interface PendingSignatureDto {
   reportId: string
-  reportTitleAr: string
-  reportTitleEn: string
   reportType: string
+  tenderId: string
   createdAt: string
 }
 
-export interface CommitteeInfoDto {
+export interface CommitteeSummaryDto {
   committeeId: string
-  nameAr: string
-  nameEn: string
+  committeeNameAr: string
+  committeeNameEn: string
   memberRole: string
   committeeType: string
 }
@@ -216,6 +240,17 @@ export interface EscalatedTaskDto {
 export interface AuditCategoryCountDto {
   category: string
   count: number
+}
+
+export interface KnowledgeBaseStatsDto {
+  totalSources: number
+  autoIndexedCount: number
+  manualUploadCount: number
+  indexedCount: number
+  pendingCount: number
+  failedCount: number
+  totalChunks: number
+  totalVectors: number
 }
 
 // ===== Sprint 4: Report Types =====

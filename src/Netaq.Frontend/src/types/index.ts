@@ -166,7 +166,7 @@ export type TenderType =
   | 'FrameworkAgreementSupply' | 'FrameworkAgreementServices' | 'FrameworkAgreementConsulting'
   | 'RevenueSharing' | 'PerformanceBasedContract' | 'CapacityStudy'
 
-export type TenderStatus = 'Draft' | 'UnderReview' | 'Approved' | 'Published' | 'Cancelled' | 'Closed'
+export type TenderStatus = 'Draft' | 'PendingApproval' | 'Approved' | 'EvaluationInProgress' | 'EvaluationCompleted' | 'Archived' | 'Cancelled'
 
 export type BookletCreationMethod = 'FromTemplate' | 'AiExtraction' | 'ManualEntry'
 

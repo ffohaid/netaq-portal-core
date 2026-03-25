@@ -38,7 +38,8 @@ export const useSettingsStore = defineStore('settings', () => {
     isLoading.value = true
     error.value = null
     try {
-      const response = await api.put('/settings/organization/branding', data)
+      // Backend uses PUT /settings/organization for branding updates
+      const response = await api.put('/settings/organization', data)
       if (response.data.isSuccess) {
         await fetchOrgSettings()
       }
@@ -55,7 +56,8 @@ export const useSettingsStore = defineStore('settings', () => {
     isLoading.value = true
     error.value = null
     try {
-      const response = await api.put('/settings/organization/auth', data)
+      // Backend uses PUT /settings/authentication
+      const response = await api.put('/settings/authentication', data)
       if (response.data.isSuccess) {
         await fetchOrgSettings()
       }
@@ -73,7 +75,8 @@ export const useSettingsStore = defineStore('settings', () => {
     isLoading.value = true
     error.value = null
     try {
-      const response = await api.get('/settings/ai')
+      // Backend uses /settings/ai-configurations
+      const response = await api.get('/settings/ai-configurations')
       if (response.data.isSuccess) {
         aiConfigs.value = response.data.data
       }
@@ -88,7 +91,7 @@ export const useSettingsStore = defineStore('settings', () => {
     isLoading.value = true
     error.value = null
     try {
-      const response = await api.post('/settings/ai', data)
+      const response = await api.post('/settings/ai-configurations', data)
       if (response.data.isSuccess) {
         await fetchAiConfigs()
       }
@@ -105,7 +108,7 @@ export const useSettingsStore = defineStore('settings', () => {
     isLoading.value = true
     error.value = null
     try {
-      const response = await api.put(`/settings/ai/${id}`, data)
+      const response = await api.put(`/settings/ai-configurations/${id}`, data)
       if (response.data.isSuccess) {
         await fetchAiConfigs()
       }
@@ -120,7 +123,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
   async function deleteAiConfig(id: string) {
     try {
-      const response = await api.delete(`/settings/ai/${id}`)
+      const response = await api.delete(`/settings/ai-configurations/${id}`)
       if (response.data.isSuccess) {
         await fetchAiConfigs()
       }
@@ -133,7 +136,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
   async function testAiConfig(id: string): Promise<AiTestResult | null> {
     try {
-      const response = await api.post(`/settings/ai/${id}/test`)
+      const response = await api.post(`/settings/ai-configurations/${id}/test`)
       if (response.data.isSuccess) {
         return response.data.data
       }
@@ -149,7 +152,8 @@ export const useSettingsStore = defineStore('settings', () => {
     isLoading.value = true
     error.value = null
     try {
-      const response = await api.get('/settings/knowledge-base')
+      // Backend uses /settings/knowledge-sources
+      const response = await api.get('/settings/knowledge-sources')
       if (response.data.isSuccess) {
         knowledgeBase.value = response.data.data
       }
@@ -164,7 +168,7 @@ export const useSettingsStore = defineStore('settings', () => {
     isLoading.value = true
     error.value = null
     try {
-      const response = await api.post('/settings/knowledge-base', data)
+      const response = await api.post('/settings/knowledge-sources', data)
       if (response.data.isSuccess) {
         await fetchKnowledgeBase()
       }
@@ -179,7 +183,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
   async function deleteKnowledgeSource(id: string) {
     try {
-      const response = await api.delete(`/settings/knowledge-base/${id}`)
+      const response = await api.delete(`/settings/knowledge-sources/${id}`)
       if (response.data.isSuccess) {
         await fetchKnowledgeBase()
       }

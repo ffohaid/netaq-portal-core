@@ -27,7 +27,7 @@ const tenderTypes: TenderType[] = [
   'RevenueSharing', 'PerformanceBasedContract', 'CapacityStudy',
 ]
 
-const tenderStatuses: TenderStatus[] = ['Draft', 'UnderReview', 'Approved', 'Published', 'Cancelled', 'Closed']
+const tenderStatuses: TenderStatus[] = ['Draft', 'PendingApproval', 'Approved', 'EvaluationInProgress', 'EvaluationCompleted', 'Archived', 'Cancelled']
 
 async function loadTenders() {
   await tenderStore.fetchTenders({
@@ -62,11 +62,12 @@ function formatCurrency(value: number) {
 function getStatusClass(status: TenderStatus) {
   const classes: Record<TenderStatus, string> = {
     Draft: 'bg-gray-100 text-gray-700',
-    UnderReview: 'bg-yellow-100 text-yellow-700',
+    PendingApproval: 'bg-yellow-100 text-yellow-700',
     Approved: 'bg-green-100 text-green-700',
-    Published: 'bg-blue-100 text-blue-700',
+    EvaluationInProgress: 'bg-blue-100 text-blue-700',
+    EvaluationCompleted: 'bg-emerald-100 text-emerald-700',
+    Archived: 'bg-purple-100 text-purple-700',
     Cancelled: 'bg-red-100 text-red-700',
-    Closed: 'bg-gray-200 text-gray-600',
   }
   return classes[status] || 'bg-gray-100 text-gray-700'
 }

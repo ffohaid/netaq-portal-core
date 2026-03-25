@@ -97,11 +97,6 @@ const navItems = computed(() => [
 
 const settingsItems = computed(() => [
   {
-    name: t('nav.permissionMatrix'),
-    path: '/settings/permissions',
-    show: isSystemAdmin.value,
-  },
-  {
     name: t('nav.orgSettings'),
     path: '/settings/organization',
     show: isAdmin.value,
@@ -176,7 +171,7 @@ function isSettingsActive(): boolean {
         <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="item.icon" />
         </svg>
-        <span v-if="!collapsed" class="text-sm font-medium">{{ item.name }}</span>
+        <span v-if="!collapsed" class="text-sm font-medium truncate">{{ item.name }}</span>
       </router-link>
 
       <!-- Settings Section (Collapsible) -->
