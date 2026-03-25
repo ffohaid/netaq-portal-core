@@ -464,15 +464,15 @@ function getStatusClass(status: string) {
             </div>
             <div class="p-3 bg-green-50 rounded-lg text-center">
               <p class="text-2xl font-bold text-green-700">{{ dashboardStore.allCommittees.activeCount }}</p>
-              <p class="text-xs text-gray-500 mt-1">{{ t('committees.status.Active') || 'نشطة' }}</p>
+              <p class="text-xs text-gray-500 mt-1">{{ locale === 'ar' ? 'نشطة' : 'Active' }}</p>
             </div>
             <div class="p-3 bg-yellow-50 rounded-lg text-center">
               <p class="text-2xl font-bold text-yellow-700">{{ dashboardStore.allCommittees.pendingCount }}</p>
-              <p class="text-xs text-gray-500 mt-1">{{ t('committees.status.Pending') }}</p>
+              <p class="text-xs text-gray-500 mt-1">{{ locale === 'ar' ? 'معلقة' : 'Pending' }}</p>
             </div>
             <div class="p-3 bg-gray-50 rounded-lg text-center">
               <p class="text-2xl font-bold text-gray-700">{{ dashboardStore.allCommittees.dissolvedCount }}</p>
-              <p class="text-xs text-gray-500 mt-1">{{ t('committees.status.Dissolved') || 'منحلة' }}</p>
+              <p class="text-xs text-gray-500 mt-1">{{ locale === 'ar' ? 'منحلة' : 'Dissolved' }}</p>
             </div>
           </div>
           <!-- Committee List -->
@@ -500,7 +500,7 @@ function getStatusClass(status: string) {
                       'badge-success': committee.status === 'Active',
                       'badge-warning': committee.status === 'Pending',
                       'badge-info': committee.status === 'Dissolved',
-                    }">{{ t(`committees.status.${committee.status}`) || committee.status }}</span>
+                    }}>{{ committee.status === 'Active' ? (locale === 'ar' ? 'نشطة' : 'Active') : committee.status === 'Dissolved' ? (locale === 'ar' ? 'منحلة' : 'Dissolved') : committee.status === 'Pending' ? (locale === 'ar' ? 'معلقة' : 'Pending') : committee.status }}</span>
                   </td>
                   <td class="py-3 text-gray-500">{{ committee.memberCount }}</td>
                   <td class="py-3 text-gray-500 text-xs">{{ locale === 'ar' ? committee.tenderTitleAr : committee.tenderTitleEn }}</td>
