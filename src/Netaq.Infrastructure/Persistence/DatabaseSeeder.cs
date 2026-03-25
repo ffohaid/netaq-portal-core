@@ -23,6 +23,7 @@ public static class DatabaseSeeder
     private static readonly Guid MemberId = Guid.Parse("55555555-5555-5555-5555-555555555555");
     private static readonly Guid ViewerId = Guid.Parse("66666666-6666-6666-6666-666666666666");
     private static readonly Guid AuditorId = Guid.Parse("77777777-7777-7777-7777-777777777777");
+    private static readonly Guid OrgAdminId = Guid.Parse("88888888-8888-8888-8888-888888888888");
 
     public static async Task SeedAsync(ApplicationDbContext context)
     {
@@ -127,7 +128,8 @@ public static class DatabaseSeeder
             (ChairId, "د. خالد بن فهد الشمري", "Dr. Khalid Al-Shammari", "khalid.chair@netaq.pro", OrganizationRole.CommitteeChair, "ar"),
             (MemberId, "فاطمة بنت سعد الدوسري", "Fatimah Al-Dosari", "fatimah.member@netaq.pro", OrganizationRole.CommitteeMember, "ar"),
             (ViewerId, "نورة بنت علي الحربي", "Noura Al-Harbi", "noura.viewer@netaq.pro", OrganizationRole.Viewer, "ar"),
-            (AuditorId, "عبدالرحمن بن صالح الغامدي", "Abdulrahman Al-Ghamdi", "abdulrahman.auditor@netaq.pro", OrganizationRole.Viewer, "ar"),
+            (AuditorId, "عبدالرحمن بن صالح الغامدي", "Abdulrahman Al-Ghamdi", "abdulrahman.legal@netaq.pro", OrganizationRole.LegalAdvisor, "ar"),
+            (OrgAdminId, "محمد بن عبدالله الفهد", "Mohammed Al-Fahad", "mohammed.orgadmin@netaq.pro", OrganizationRole.OrganizationAdmin, "ar"),
         };
 
         foreach (var (id, nameAr, nameEn, email, role, locale) in userData)
@@ -160,6 +162,7 @@ public static class DatabaseSeeder
         var rolePermissions = new Dictionary<OrganizationRole, (bool view, bool create, bool edit, bool delete, bool approve, bool reject, bool deleg, bool export)>
         {
             [OrganizationRole.SystemAdmin] = (true, true, true, true, true, true, true, true),
+            [OrganizationRole.OrganizationAdmin] = (true, true, true, true, true, true, true, true),
             [OrganizationRole.DepartmentManager] = (true, true, true, false, true, true, true, true),
             [OrganizationRole.Coordinator] = (true, true, true, false, false, false, false, true),
             [OrganizationRole.CommitteeChair] = (true, false, true, false, true, true, true, true),
