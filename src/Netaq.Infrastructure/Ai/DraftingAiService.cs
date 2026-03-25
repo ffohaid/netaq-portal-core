@@ -431,12 +431,7 @@ public class DraftingAiService : IAiDraftingService
     private static List<TenderCriteriaDto> ParseCriteriaSuggestions(string response, CriteriaType criteriaType)
     {
         // Try to extract JSON from the response
-        var jsonStart = response.IndexOf('{');
-        var jsonEnd = response.LastIndexOf('}');
-        if (jsonStart < 0 || jsonEnd < 0)
-            return new List<TenderCriteriaDto>();
-
-        var jsonStr = response.Substring(jsonStart, jsonEnd - jsonStart + 1);
+        var jsonStr = ExtractJsonFromResponse(response);
         using var doc = JsonDocument.Parse(jsonStr);
 
         var criteriaArray = doc.RootElement.GetProperty("criteria");
@@ -493,14 +488,66 @@ public class DraftingAiService : IAiDraftingService
         return element.GetRawText();
     }
 
+    private static string ExtractJsonFromResponse(string response)
+    {
+        // Remove markdown code blocks if present
+        var cleaned = response.Trim();
+        if (cleaned.Contains("```json"))
+        {
+            var start = cleaned.IndexOf("```json") + 7;
+            var end = cleaned.IndexOf("```", start);
+            if (end > start)
+                cleaned = cleaned.Substring(start, end - start).Trim();
+        }
+        else if (cleaned.Contains("```"))
+        {
+            var start = cleaned.IndexOf("```") + 3;
+            // Skip to next line
+            var newline = cleaned.IndexOf('\n', start);
+            if (newline > 0) start = newline + 1;
+            var end = cleaned.IndexOf("```", start);
+            if (end > start)
+                cleaned = cleaned.Substring(start, end - start).Trim();
+        }
+
+        // Find balanced JSON object
+        var jsonStart = cleaned.IndexOf('{');
+        if (jsonStart < 0) return cleaned;
+
+        int depth = 0;
+        int jsonEnd = -1;
+        bool inString = false;
+        bool escaped = false;
+
+        for (int i = jsonStart; i < cleaned.Length; i++)
+        {
+            char c = cleaned[i];
+            if (escaped) { escaped = false; continue; }
+            if (c == '\\' && inString) { escaped = true; continue; }
+            if (c == '"') { inString = !inString; continue; }
+            if (inString) continue;
+            if (c == '{') depth++;
+            else if (c == '}')
+            {
+                depth--;
+                if (depth == 0) { jsonEnd = i; break; }
+            }
+        }
+
+        if (jsonEnd > jsonStart)
+            return cleaned.Substring(jsonStart, jsonEnd - jsonStart + 1);
+
+        // Fallback: try from first { to last }
+        var lastBrace = cleaned.LastIndexOf('}');
+        if (lastBrace > jsonStart)
+            return cleaned.Substring(jsonStart, lastBrace - jsonStart + 1);
+
+        return cleaned;
+    }
+
     private static AiComplianceCheckDto ParseComplianceCheck(string response)
     {
-        var jsonStart = response.IndexOf('{');
-        var jsonEnd = response.LastIndexOf('}');
-        if (jsonStart < 0 || jsonEnd < 0)
-            return new AiComplianceCheckDto(false, new List<ComplianceIssue>(), response, "", "");
-
-        var jsonStr = response.Substring(jsonStart, jsonEnd - jsonStart + 1);
+        var jsonStr = ExtractJsonFromResponse(response);
         using var doc = JsonDocument.Parse(jsonStr);
 
         var isCompliant = doc.RootElement.TryGetProperty("isCompliant", out var compProp) && compProp.ValueKind == JsonValueKind.True;
