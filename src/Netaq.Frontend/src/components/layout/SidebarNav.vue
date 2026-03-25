@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../../stores/auth'
+import { getCurrentLocale } from '../../i18n'
 
 defineProps<{
   collapsed: boolean
@@ -17,6 +18,8 @@ const route = useRoute()
 const authStore = useAuthStore()
 
 const settingsExpanded = ref(false)
+
+const isRtl = computed(() => getCurrentLocale() === 'ar')
 
 const isAdmin = computed(() => {
   return authStore.user?.role === 'SystemAdmin' || authStore.user?.role === 'OrganizationAdmin'
@@ -129,7 +132,7 @@ function isSettingsActive(): boolean {
 
 <template>
   <aside
-    class="bg-govtech-dark text-white transition-all duration-300 flex flex-col"
+    class="bg-govtech-dark text-white transition-all duration-300 flex flex-col flex-shrink-0"
     :class="collapsed ? 'w-16' : 'w-64'"
   >
     <!-- Logo -->
@@ -190,7 +193,15 @@ function isSettingsActive(): boolean {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
           <span v-if="!collapsed" class="text-sm font-medium flex-1 text-start">{{ t('nav.settings') }}</span>
-          <svg v-if="!collapsed" class="w-4 h-4 transition-transform" :class="settingsExpanded ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg
+            v-if="!collapsed"
+            class="w-4 h-4 transition-transform"
+            :class="[
+              settingsExpanded ? 'rotate-90' : '',
+              isRtl ? 'rotate-180' : ''
+            ]"
+            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+          >
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
           </svg>
         </button>
@@ -220,12 +231,14 @@ function isSettingsActive(): boolean {
         @click="$emit('toggle')"
         class="w-full flex items-center justify-center p-2 rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-5 h-5 transition-transform" :class="isRtl ? '' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
-            :d="collapsed ? 'M13 5l7 7-7 7' : 'M11 19l-7-7 7-7'"
+            :d="collapsed
+              ? (isRtl ? 'M11 19l-7-7 7-7' : 'M13 5l7 7-7 7')
+              : (isRtl ? 'M13 5l7 7-7 7' : 'M11 19l-7-7 7-7')"
           />
         </svg>
       </button>
