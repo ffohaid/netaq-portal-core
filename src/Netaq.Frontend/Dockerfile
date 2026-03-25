@@ -13,6 +13,10 @@ RUN pnpm install --frozen-lockfile || pnpm install
 # Copy source code
 COPY . .
 
+# Set production API URL for Vite build
+ARG VITE_API_URL=https://netaq.pro
+ENV VITE_API_URL=${VITE_API_URL}
+
 # Build
 RUN pnpm run build || (npx vue-tsc --noEmit || true) && npx vite build
 
