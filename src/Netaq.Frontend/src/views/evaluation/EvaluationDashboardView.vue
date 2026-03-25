@@ -27,7 +27,7 @@ async function fetchTenders() {
   loading.value = true;
   error.value = null;
   try {
-    const res = await api.get('/api/tenders', { params: { pageSize: 100 } });
+    const res = await api.get('/tenders', { params: { pageSize: 100 } });
     if (res.data?.isSuccess) {
       tenders.value = (res.data.data?.items || res.data.data || []);
     }
@@ -43,7 +43,7 @@ async function fetchProposals() {
   if (!selectedTenderId.value) return;
   loading.value = true;
   try {
-    const res = await api.get(`/api/tenders/${selectedTenderId.value}/proposals`, { params: { pageSize: 100 } });
+    const res = await api.get(`/tenders/${selectedTenderId.value}/proposals`, { params: { pageSize: 100 } });
     if (res.data?.isSuccess) {
       proposals.value = res.data.data?.items || res.data.data || [];
     }
@@ -57,7 +57,7 @@ async function fetchProposals() {
 // Fetch committees linked to this tender
 async function fetchCommittees() {
   try {
-    const res = await api.get('/api/committees', { params: { pageSize: 100 } });
+    const res = await api.get('/committees', { params: { pageSize: 100 } });
     if (res.data?.isSuccess) {
       const all = res.data.data?.items || res.data.data || [];
       committees.value = all.filter((c: any) =>
@@ -74,7 +74,7 @@ async function fetchCommittees() {
 async function fetchReports() {
   if (!selectedTenderId.value) return;
   try {
-    const res = await api.get(`/api/tenders/${selectedTenderId.value}/evaluation/reports`);
+    const res = await api.get(`/tenders/${selectedTenderId.value}/evaluation/reports`);
     if (res.data?.isSuccess) {
       evaluationReports.value = res.data.data || [];
     }
