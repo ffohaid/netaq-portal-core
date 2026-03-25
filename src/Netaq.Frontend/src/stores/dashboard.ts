@@ -22,10 +22,15 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
+  // All Committees (for admin)
+  const allCommittees = ref<any>(null)
+
   // Reports
   const tenderReport = ref<TenderStatusReport | null>(null)
   const slaReport = ref<SlaComplianceReport | null>(null)
   const userActivityReport = ref<UserActivityReport | null>(null)
+  const customReport = ref<any>(null)
+  const customReportLoading = ref(false)
 
   // Auto Dashboard (role-based)
   async function fetchAutoDashboard() {
@@ -85,6 +90,21 @@ export const useDashboardStore = defineStore('dashboard', () => {
       }
     } catch (err: any) {
       error.value = err.response?.data?.error || 'Failed to load committee dashboard'
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function fetchAllCommittees() {
+    isLoading.value = true
+    error.value = null
+    try {
+      const response = await api.get('/dashboard/all-committees')
+      if (response.data.isSuccess) {
+        allCommittees.value = response.data.data
+      }
+    } catch (err: any) {
+      error.value = err.response?.data?.error || 'Failed to load committees'
     } finally {
       isLoading.value = false
     }
@@ -151,6 +171,47 @@ export const useDashboardStore = defineStore('dashboard', () => {
     }
   }
 
+  async function fetchCustomReport(params: {
+    reportType: string
+    startDate?: string
+    endDate?: string
+    status?: string
+    priority?: string
+    departmentId?: string
+    committeeId?: string
+    format?: string
+  }) {
+    customReportLoading.value = true
+    error.value = null
+    customReport.value = null
+    try {
+      const response = await api.post('/reports/custom', params)
+      if (response.data.isSuccess) {
+        customReport.value = response.data.data
+        return response.data.data
+      } else {
+        error.value = response.data.error || 'Failed to generate report'
+      }
+    } catch (err: any) {
+      error.value = err.response?.data?.error || 'Failed to generate custom report'
+    } finally {
+      customReportLoading.value = false
+    }
+    return null
+  }
+
+  async function fetchAvailableReportTypes() {
+    try {
+      const response = await api.get('/reports/available-types')
+      if (response.data.isSuccess) {
+        return response.data.data
+      }
+    } catch (err: any) {
+      error.value = err.response?.data?.error || 'Failed to load report types'
+    }
+    return []
+  }
+
   return {
     dashboardType,
     dashboardData,
@@ -168,8 +229,14 @@ export const useDashboardStore = defineStore('dashboard', () => {
     fetchOperationalDashboard,
     fetchCommitteeDashboard,
     fetchMonitoringDashboard,
+    allCommittees,
+    fetchAllCommittees,
     fetchTenderReport,
     fetchSlaReport,
     fetchUserActivityReport,
+    customReport,
+    customReportLoading,
+    fetchCustomReport,
+    fetchAvailableReportTypes,
   }
 })

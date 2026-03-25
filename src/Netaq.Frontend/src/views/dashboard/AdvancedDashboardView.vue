@@ -48,6 +48,9 @@ async function switchView(view: 'executive' | 'operational' | 'committee' | 'mon
       await dashboardStore.fetchOperationalDashboard()
       break
     case 'committee':
+      if (isAdmin.value) {
+        await dashboardStore.fetchAllCommittees()
+      }
       await dashboardStore.fetchCommitteeDashboard()
       break
     case 'monitoring':
@@ -443,28 +446,90 @@ function getStatusClass(status: string) {
     </template>
 
     <!-- Committee Dashboard -->
-    <template v-else-if="activeView === 'committee' && dashboardStore.committeeDashboard">
+    <template v-else-if="activeView === 'committee'">
       <div class="space-y-6">
-        <!-- Active Committees -->
-        <div class="card" v-if="dashboardStore.committeeDashboard.myCommittees?.length">
+        <!-- All Committees (Admin View) -->
+        <div class="card" v-if="isAdmin && dashboardStore.allCommittees">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-semibold text-gray-700">{{ t('dashboard.allCommittees') || 'جميع اللجان' }}</h3>
+            <router-link to="/committees" class="text-sm text-primary-500 hover:text-primary-600">
+              {{ t('committees.title') }} &rarr;
+            </router-link>
+          </div>
+          <!-- Committee Stats -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            <div class="p-3 bg-blue-50 rounded-lg text-center">
+              <p class="text-2xl font-bold text-blue-700">{{ dashboardStore.allCommittees.totalCommittees }}</p>
+              <p class="text-xs text-gray-500 mt-1">{{ t('dashboard.totalCommittees') || 'إجمالي اللجان' }}</p>
+            </div>
+            <div class="p-3 bg-green-50 rounded-lg text-center">
+              <p class="text-2xl font-bold text-green-700">{{ dashboardStore.allCommittees.activeCount }}</p>
+              <p class="text-xs text-gray-500 mt-1">{{ t('committees.status.Active') || 'نشطة' }}</p>
+            </div>
+            <div class="p-3 bg-yellow-50 rounded-lg text-center">
+              <p class="text-2xl font-bold text-yellow-700">{{ dashboardStore.allCommittees.pendingCount }}</p>
+              <p class="text-xs text-gray-500 mt-1">{{ t('committees.status.Pending') || 'معلقة' }}</p>
+            </div>
+            <div class="p-3 bg-gray-50 rounded-lg text-center">
+              <p class="text-2xl font-bold text-gray-700">{{ dashboardStore.allCommittees.dissolvedCount }}</p>
+              <p class="text-xs text-gray-500 mt-1">{{ t('committees.status.Dissolved') || 'منحلة' }}</p>
+            </div>
+          </div>
+          <!-- Committee List -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="text-start text-gray-500 border-b">
+                  <th class="pb-3 font-medium">{{ t('committees.name') || 'اسم اللجنة' }}</th>
+                  <th class="pb-3 font-medium">{{ t('committees.type') || 'النوع' }}</th>
+                  <th class="pb-3 font-medium">{{ t('common.status') }}</th>
+                  <th class="pb-3 font-medium">{{ t('committees.members') || 'الأعضاء' }}</th>
+                  <th class="pb-3 font-medium">{{ t('committees.tender') || 'المنافسة' }}</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                <tr v-for="committee in dashboardStore.allCommittees.committees" :key="committee.id" class="hover:bg-gray-50">
+                  <td class="py-3 font-medium text-gray-900">
+                    <router-link :to="`/committees`" class="text-primary-600 hover:text-primary-700">
+                      {{ locale === 'ar' ? committee.nameAr : committee.nameEn }}
+                    </router-link>
+                  </td>
+                  <td class="py-3 text-gray-500">{{ committee.type }}</td>
+                  <td class="py-3">
+                    <span :class="{
+                      'badge-success': committee.status === 'Active',
+                      'badge-warning': committee.status === 'Pending',
+                      'badge-info': committee.status === 'Dissolved',
+                    }">{{ t(`committees.status.${committee.status}`) || committee.status }}</span>
+                  </td>
+                  <td class="py-3 text-gray-500">{{ committee.memberCount }}</td>
+                  <td class="py-3 text-gray-500 text-xs">{{ locale === 'ar' ? committee.tenderTitleAr : committee.tenderTitleEn }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- My Committees (Committee Member View) -->
+        <div class="card" v-if="dashboardStore.committeeDashboard?.myCommittees?.length">
           <h3 class="text-sm font-semibold text-gray-700 mb-4">{{ t('dashboard.activeCommittees') }}</h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div
               v-for="committee in dashboardStore.committeeDashboard.myCommittees"
               :key="committee.committeeId"
-              class="p-4 border rounded-lg"
+              class="p-4 border rounded-lg hover:border-primary-300 transition-colors"
             >
               <h4 class="font-semibold text-gray-900">{{ getTitle(committee) }}</h4>
               <div class="flex gap-4 mt-2 text-xs text-gray-500">
-                <span>{{ committee.memberRole }}</span>
-                <span>{{ committee.committeeType }}</span>
+                <span class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded">{{ committee.memberRole }}</span>
+                <span class="bg-gray-50 text-gray-700 px-2 py-0.5 rounded">{{ committee.committeeType }}</span>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Pending Evaluations -->
-        <div class="card" v-if="dashboardStore.committeeDashboard.pendingEvaluations?.length">
+        <div class="card" v-if="dashboardStore.committeeDashboard?.pendingEvaluations?.length">
           <h3 class="text-sm font-semibold text-gray-700 mb-4">{{ t('dashboard.pendingEvaluations') }}</h3>
           <div class="space-y-3">
             <div
@@ -482,7 +547,7 @@ function getStatusClass(status: string) {
         </div>
 
         <!-- Pending Signatures -->
-        <div class="card" v-if="dashboardStore.committeeDashboard.pendingSignatures?.length">
+        <div class="card" v-if="dashboardStore.committeeDashboard?.pendingSignatures?.length">
           <h3 class="text-sm font-semibold text-gray-700 mb-4">{{ t('dashboard.pendingSignatures') }}</h3>
           <div class="space-y-3">
             <div
@@ -498,7 +563,10 @@ function getStatusClass(status: string) {
         </div>
 
         <!-- Empty State -->
-        <div v-if="!dashboardStore.committeeDashboard.myCommittees?.length && !dashboardStore.committeeDashboard.pendingEvaluations?.length" class="text-center py-12 text-gray-400">
+        <div v-if="!isAdmin && !dashboardStore.committeeDashboard?.myCommittees?.length && !dashboardStore.committeeDashboard?.pendingEvaluations?.length" class="text-center py-12 text-gray-400">
+          <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
           <p class="text-lg font-medium">{{ t('dashboard.noCommitteeData') }}</p>
         </div>
       </div>

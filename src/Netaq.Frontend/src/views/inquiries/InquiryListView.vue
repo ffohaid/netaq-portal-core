@@ -19,6 +19,7 @@ const pageSize = 20
 const locale = computed(() => getCurrentLocale())
 
 const showCreateModal = ref(false)
+const isExporting = ref(false)
 const availableTenders = ref<any[]>([])
 const availableUsers = ref<any[]>([])
 const isCreating = ref(false)
@@ -89,15 +90,16 @@ function getStatusClass(status: string) {
     Responded: 'bg-green-100 text-green-700',
     Closed: 'bg-gray-100 text-gray-700',
     Escalated: 'bg-red-100 text-red-700',
+    Reopened: 'bg-purple-100 text-purple-700',
   }
   return map[status] || 'bg-gray-100 text-gray-700'
 }
 function getStatusLabel(status: string) {
   if (locale.value === 'ar') {
-    const m: Record<string, string> = { Submitted: 'جديد', UnderReview: 'قيد المراجعة', Responded: 'تمت الإجابة', Closed: 'مغلق', Escalated: 'مُصعّد' }
+    const m: Record<string, string> = { Submitted: 'جديد', UnderReview: 'قيد المراجعة', Responded: 'تمت الإجابة', Closed: 'مغلق', Escalated: 'مُصعّد', Reopened: 'مُعاد فتحه' }
     return m[status] || status
   }
-  const m: Record<string, string> = { Submitted: 'New', UnderReview: 'Under Review', Responded: 'Responded', Closed: 'Closed', Escalated: 'Escalated' }
+  const m: Record<string, string> = { Submitted: 'New', UnderReview: 'Under Review', Responded: 'Responded', Closed: 'Closed', Escalated: 'Escalated', Reopened: 'Reopened' }
   return m[status] || status
 }
 function getPriorityClass(priority: string) {
@@ -143,6 +145,12 @@ function resetForm() {
   createForm.value = { tenderId: '', subjectAr: '', subjectEn: '', questionAr: '', questionEn: '', priority: 'Normal', category: 'General', assignedToUserId: '' }
 }
 
+async function handleExport() {
+  isExporting.value = true
+  await store.exportInquiries(tenderFilter.value || undefined, statusFilter.value || undefined)
+  isExporting.value = false
+}
+
 let searchTimeout: any = null
 watch(searchTerm, () => { clearTimeout(searchTimeout); searchTimeout = setTimeout(() => { currentPage.value = 1; loadInquiries() }, 400) })
 watch([statusFilter, categoryFilter, tenderFilter], () => { currentPage.value = 1; loadInquiries() })
@@ -158,10 +166,16 @@ onMounted(() => { loadInquiries(); loadTenders(); loadUsers() })
         <h1 class="text-2xl font-bold text-gray-900">{{ locale === 'ar' ? 'الاستفسارات' : 'Inquiries' }}</h1>
         <p class="text-gray-500 mt-1">{{ locale === 'ar' ? 'إدارة استفسارات المنافسات - استلام الأسئلة من منصة اعتماد وتوزيعها على المختصين للإجابة' : 'Manage tender inquiries - receive questions from Etimad platform and assign to specialists' }}</p>
       </div>
-      <button @click="showCreateModal = true" class="px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium flex items-center gap-2">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-        {{ locale === 'ar' ? 'إضافة استفسار' : 'Add Inquiry' }}
-      </button>
+      <div class="flex items-center gap-2">
+        <button @click="handleExport" :disabled="isExporting" class="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+          {{ locale === 'ar' ? 'تصدير' : 'Export' }}
+        </button>
+        <button @click="showCreateModal = true" class="px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+          {{ locale === 'ar' ? 'إضافة استفسار' : 'Add Inquiry' }}
+        </button>
+      </div>
     </div>
 
     <!-- Filters -->
@@ -182,6 +196,7 @@ onMounted(() => { loadInquiries(); loadTenders(); loadUsers() })
           <option value="Responded">{{ locale === 'ar' ? 'تمت الإجابة' : 'Responded' }}</option>
           <option value="Closed">{{ locale === 'ar' ? 'مغلق' : 'Closed' }}</option>
           <option value="Escalated">{{ locale === 'ar' ? 'مُصعّد' : 'Escalated' }}</option>
+          <option value="Reopened">{{ locale === 'ar' ? 'مُعاد فتحه' : 'Reopened' }}</option>
         </select>
         <select v-model="categoryFilter" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
           <option value="">{{ locale === 'ar' ? 'جميع التصنيفات' : 'All Categories' }}</option>

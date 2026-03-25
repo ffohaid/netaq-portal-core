@@ -10,11 +10,24 @@ const authStore = useAuthStore()
 
 const otpCode = ref('')
 
+const resendCooldown = ref(0)
+let cooldownTimer: any = null
+
 async function handleVerify() {
   const success = await authStore.verifyOtp(otpCode.value)
   if (success) {
     router.push({ name: 'Dashboard' })
   }
+}
+
+async function handleResendOtp() {
+  if (resendCooldown.value > 0) return
+  await authStore.resendOtp()
+  resendCooldown.value = 60
+  cooldownTimer = setInterval(() => {
+    resendCooldown.value--
+    if (resendCooldown.value <= 0) clearInterval(cooldownTimer)
+  }, 1000)
 }
 </script>
 
@@ -49,8 +62,8 @@ async function handleVerify() {
         {{ authStore.isLoading ? t('common.loading') : t('auth.verifyOtp') }}
       </button>
 
-      <button type="button" class="w-full text-sm text-primary-500 hover:text-primary-600">
-        {{ t('auth.resendOtp') }}
+      <button type="button" @click="handleResendOtp" :disabled="resendCooldown > 0" class="w-full text-sm text-primary-500 hover:text-primary-600 disabled:text-gray-400">
+        {{ resendCooldown > 0 ? `${t('auth.resendOtp')} (${resendCooldown}s)` : t('auth.resendOtp') }}
       </button>
     </form>
   </div>

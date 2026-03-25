@@ -14,7 +14,7 @@ export interface Inquiry {
   questionEn: string
   responseAr?: string
   responseEn?: string
-  status: 'Submitted' | 'UnderReview' | 'Responded' | 'Closed' | 'Escalated'
+  status: 'Submitted' | 'UnderReview' | 'Responded' | 'Closed' | 'Escalated' | 'Reopened'
   priority: 'Low' | 'Normal' | 'High' | 'Urgent'
   category: 'General' | 'Technical' | 'Financial' | 'Legal' | 'Administrative' | 'Clarification'
   submittedByUserId: string
@@ -28,6 +28,17 @@ export interface Inquiry {
   respondedAt?: string
   closedAt?: string
   createdAt: string
+  internalNotesAr?: string
+  internalNotesEn?: string
+}
+
+export interface InquiryStats {
+  totalInquiries: number
+  submittedCount: number
+  underReviewCount: number
+  respondedCount: number
+  closedCount: number
+  overdueCount: number
 }
 
 export interface CreateInquiryRequest {
@@ -50,6 +61,7 @@ export interface RespondToInquiryRequest {
 export const useInquiryStore = defineStore('inquiries', () => {
   const inquiries = ref<Inquiry[]>([])
   const currentInquiry = ref<Inquiry | null>(null)
+  const statistics = ref<InquiryStats | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   const totalCount = ref(0)
@@ -60,6 +72,7 @@ export const useInquiryStore = defineStore('inquiries', () => {
     pageSize?: number
     tenderId?: string
     status?: string
+    category?: string
     search?: string
   }) {
     isLoading.value = true
@@ -70,6 +83,7 @@ export const useInquiryStore = defineStore('inquiries', () => {
       if (params?.pageSize) queryParams.set('pageSize', params.pageSize.toString())
       if (params?.tenderId) queryParams.set('tenderId', params.tenderId)
       if (params?.status) queryParams.set('status', params.status)
+      if (params?.category) queryParams.set('category', params.category)
       if (params?.search) queryParams.set('search', params.search)
 
       const response = await api.get<ApiResponse<PaginatedResponse<Inquiry>>>(
@@ -99,6 +113,18 @@ export const useInquiryStore = defineStore('inquiries', () => {
       error.value = err.response?.data?.error || 'Failed to fetch inquiry'
     } finally {
       isLoading.value = false
+    }
+  }
+
+  async function fetchStatistics(tenderId?: string) {
+    try {
+      const params = tenderId ? { tenderId } : {}
+      const response = await api.get<ApiResponse<InquiryStats>>('/inquiries/statistics', { params })
+      if (response.data.isSuccess && response.data.data) {
+        statistics.value = response.data.data
+      }
+    } catch (err: any) {
+      error.value = err.response?.data?.error || 'Failed to fetch statistics'
     }
   }
 
@@ -168,18 +194,101 @@ export const useInquiryStore = defineStore('inquiries', () => {
     }
   }
 
+  async function escalateInquiry(id: string, escalatedToUserId: string, reason: string) {
+    error.value = null
+    try {
+      const response = await api.put<ApiResponse<Inquiry>>(`/inquiries/${id}/escalate`, {
+        escalatedToUserId,
+        reason
+      })
+      if (response.data.isSuccess) {
+        await fetchInquiry(id)
+        return true
+      }
+      error.value = response.data.error || 'Failed to escalate inquiry'
+      return false
+    } catch (err: any) {
+      error.value = err.response?.data?.error || 'Failed to escalate inquiry'
+      return false
+    }
+  }
+
+  async function reopenInquiry(id: string) {
+    error.value = null
+    try {
+      const response = await api.put<ApiResponse<Inquiry>>(`/inquiries/${id}/reopen`, {})
+      if (response.data.isSuccess) {
+        await fetchInquiry(id)
+        return true
+      }
+      error.value = response.data.error || 'Failed to reopen inquiry'
+      return false
+    } catch (err: any) {
+      error.value = err.response?.data?.error || 'Failed to reopen inquiry'
+      return false
+    }
+  }
+
+  async function addNote(id: string, noteAr: string, noteEn: string) {
+    error.value = null
+    try {
+      const response = await api.post<ApiResponse<Inquiry>>(`/inquiries/${id}/notes`, {
+        noteAr,
+        noteEn
+      })
+      if (response.data.isSuccess) {
+        await fetchInquiry(id)
+        return true
+      }
+      error.value = response.data.error || 'Failed to add note'
+      return false
+    } catch (err: any) {
+      error.value = err.response?.data?.error || 'Failed to add note'
+      return false
+    }
+  }
+
+  async function exportInquiries(tenderId?: string, status?: string) {
+    try {
+      const params: any = {}
+      if (tenderId) params.tenderId = tenderId
+      if (status) params.status = status
+      const response = await api.get('/inquiries/export', {
+        params,
+        responseType: 'blob'
+      })
+      const blob = new Blob([response.data as any], { type: 'text/csv;charset=utf-8;' })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `inquiries_${new Date().toISOString().split('T')[0]}.csv`
+      link.click()
+      window.URL.revokeObjectURL(url)
+      return true
+    } catch (err: any) {
+      error.value = 'Failed to export inquiries'
+      return false
+    }
+  }
+
   return {
     inquiries,
     currentInquiry,
+    statistics,
     isLoading,
     error,
     totalCount,
     totalPages,
     fetchInquiries,
     fetchInquiry,
+    fetchStatistics,
     createInquiry,
     respondToInquiry,
     assignInquiry,
     closeInquiry,
+    escalateInquiry,
+    reopenInquiry,
+    addNote,
+    exportInquiries,
   }
 })

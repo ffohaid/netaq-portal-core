@@ -13,6 +13,7 @@ public interface IDashboardService
     Task<ExecutiveDashboardDto> GetExecutiveDashboardAsync(Guid organizationId);
     Task<OperationalDashboardDto> GetOperationalDashboardAsync(Guid organizationId, Guid userId);
     Task<CommitteeDashboardDto> GetCommitteeDashboardAsync(Guid organizationId, Guid userId);
+    Task<AllCommitteesDto> GetAllCommitteesAsync(Guid organizationId);
     Task<MonitoringDashboardDto> GetMonitoringDashboardAsync(Guid organizationId);
 }
 
@@ -253,6 +254,57 @@ public class DashboardService : IDashboardService
         };
     }
 
+    /// <summary>
+    /// Get all committees for the organization (for Admin view in dashboard).
+    /// Returns all committees with their members, statistics, and linked tenders.
+    /// </summary>
+    public async Task<AllCommitteesDto> GetAllCommitteesAsync(Guid organizationId)
+    {
+        var committees = await _context.Committees
+            .Where(c => c.OrganizationId == organizationId)
+            .Include(c => c.Members)
+                .ThenInclude(m => m.User)
+            .Include(c => c.Tender)
+            .OrderByDescending(c => c.CreatedAt)
+            .ToListAsync();
+
+        var committeeList = committees.Select(c => new CommitteeDetailDto
+        {
+            Id = c.Id,
+            NameAr = c.NameAr,
+            NameEn = c.NameEn,
+            Type = c.Type,
+            PurposeAr = c.PurposeAr,
+            PurposeEn = c.PurposeEn,
+            IsActive = c.IsActive,
+            FormedAt = c.FormedAt,
+            StartDate = c.StartDate,
+            EndDate = c.EndDate,
+            TenderId = c.TenderId,
+            TenderNameAr = c.Tender?.TitleAr,
+            TenderNameEn = c.Tender?.TitleEn,
+            TenderReferenceNumber = c.Tender?.ReferenceNumber,
+            MemberCount = c.Members.Count,
+            Members = c.Members.Select(m => new CommitteeMemberDetailDto
+            {
+                UserId = m.UserId,
+                FullNameAr = m.User.FullNameAr,
+                FullNameEn = m.User.FullNameEn,
+                Email = m.User.Email,
+                Role = m.Role
+            }).ToList()
+        }).ToList();
+
+        return new AllCommitteesDto
+        {
+            TotalCommittees = committees.Count,
+            ActiveCount = committees.Count(c => c.IsActive),
+            PermanentCount = committees.Count(c => c.Type == CommitteeType.Permanent),
+            TemporaryCount = committees.Count(c => c.Type == CommitteeType.Temporary),
+            Committees = committeeList
+        };
+    }
+
     public async Task<MonitoringDashboardDto> GetMonitoringDashboardAsync(Guid organizationId)
     {
         // SLA tracking overview
@@ -355,6 +407,44 @@ public class CommitteeDashboardDto
     public List<CommitteeSummaryDto> MyCommittees { get; set; } = new();
     public List<PendingEvaluationDto> PendingEvaluations { get; set; } = new();
     public List<PendingSignatureDto> PendingSignatures { get; set; } = new();
+}
+
+public class AllCommitteesDto
+{
+    public int TotalCommittees { get; set; }
+    public int ActiveCount { get; set; }
+    public int PermanentCount { get; set; }
+    public int TemporaryCount { get; set; }
+    public List<CommitteeDetailDto> Committees { get; set; } = new();
+}
+
+public class CommitteeDetailDto
+{
+    public Guid Id { get; set; }
+    public string NameAr { get; set; } = string.Empty;
+    public string NameEn { get; set; } = string.Empty;
+    public CommitteeType Type { get; set; }
+    public string? PurposeAr { get; set; }
+    public string? PurposeEn { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime? FormedAt { get; set; }
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
+    public Guid? TenderId { get; set; }
+    public string? TenderNameAr { get; set; }
+    public string? TenderNameEn { get; set; }
+    public string? TenderReferenceNumber { get; set; }
+    public int MemberCount { get; set; }
+    public List<CommitteeMemberDetailDto> Members { get; set; } = new();
+}
+
+public class CommitteeMemberDetailDto
+{
+    public Guid UserId { get; set; }
+    public string FullNameAr { get; set; } = string.Empty;
+    public string FullNameEn { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public CommitteeMemberRole Role { get; set; }
 }
 
 public class MonitoringDashboardDto

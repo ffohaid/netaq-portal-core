@@ -158,3 +158,67 @@ public class GetInquiryStatsQueryHandler : IRequestHandler<GetInquiryStatsQuery,
         return ApiResponse<InquiryStatsDto>.Success(stats);
     }
 }
+
+// ==================== Export Inquiries ====================
+public record ExportInquiriesQuery(Guid? TenderId = null, InquiryStatus? Status = null) : IRequest<ApiResponse<byte[]>>;
+
+public class ExportInquiriesQueryHandler : IRequestHandler<ExportInquiriesQuery, ApiResponse<byte[]>>
+{
+    private readonly IApplicationDbContext _context;
+
+    public ExportInquiriesQueryHandler(IApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<ApiResponse<byte[]>> Handle(ExportInquiriesQuery request, CancellationToken cancellationToken)
+    {
+        var query = _context.Inquiries
+            .Include(i => i.Tender)
+            .Include(i => i.SubmittedByUser)
+            .Include(i => i.AssignedToUser)
+            .AsQueryable();
+
+        if (request.TenderId.HasValue)
+            query = query.Where(i => i.TenderId == request.TenderId.Value);
+
+        if (request.Status.HasValue)
+            query = query.Where(i => i.Status == request.Status.Value);
+
+        var inquiries = await query.OrderByDescending(i => i.CreatedAt).ToListAsync(cancellationToken);
+
+        // Build CSV
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("ID,Subject (AR),Subject (EN),Status,Priority,Category,Tender,Submitted By,Assigned To,Due Date,Responded At,Created At");
+
+        foreach (var i in inquiries)
+        {
+            var line = string.Join(",",
+                i.Id,
+                EscapeCsv(i.SubjectAr),
+                EscapeCsv(i.SubjectEn),
+                i.Status.ToString(),
+                i.Priority.ToString(),
+                i.Category.ToString(),
+                EscapeCsv(i.Tender?.TitleEn ?? ""),
+                EscapeCsv(i.SubmittedByUser?.FullNameEn ?? ""),
+                EscapeCsv(i.AssignedToUser?.FullNameEn ?? ""),
+                i.DueDate?.ToString("yyyy-MM-dd") ?? "",
+                i.RespondedAt?.ToString("yyyy-MM-dd HH:mm") ?? "",
+                i.CreatedAt.ToString("yyyy-MM-dd HH:mm")
+            );
+            sb.AppendLine(line);
+        }
+
+        var bytes = System.Text.Encoding.UTF8.GetPreamble().Concat(System.Text.Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
+        return ApiResponse<byte[]>.Success(bytes);
+    }
+
+    private static string EscapeCsv(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return "";
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        return value;
+    }
+}

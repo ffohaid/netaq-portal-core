@@ -114,6 +114,20 @@ public class DashboardController : ControllerBase
     }
 
     /// <summary>
+    /// Get all committees for the organization (Admin dashboard view).
+    /// Returns all committees with members, statistics, and linked tenders.
+    /// </summary>
+    [HttpGet("all-committees")]
+    [Authorize(Roles = "SystemAdmin,OrganizationAdmin")]
+    public async Task<ActionResult<ApiResponse<AllCommitteesDto>>> GetAllCommittees()
+    {
+        if (!_currentUser.OrganizationId.HasValue)
+            return Unauthorized();
+        var result = await _dashboardService.GetAllCommitteesAsync(_currentUser.OrganizationId.Value);
+        return Ok(ApiResponse<AllCommitteesDto>.Success(result));
+    }
+
+    /// <summary>
     /// Get monitoring dashboard (SystemAdmin only).
     /// SLA compliance, escalations, audit statistics, and knowledge base health.
     /// </summary>

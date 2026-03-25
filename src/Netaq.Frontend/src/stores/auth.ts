@@ -76,6 +76,18 @@ export const useAuthStore = defineStore('auth', () => {
     return false
   }
 
+  async function resendOtp() {
+    isLoading.value = true
+    error.value = null
+    try {
+      await api.post('/auth/resend-otp', { email: otpEmail.value })
+    } catch (err: any) {
+      error.value = err.response?.data?.error || 'Failed to resend OTP'
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   async function fetchProfile() {
     try {
       const response = await api.get<ApiResponse<UserProfile>>('/auth/me')
@@ -112,6 +124,7 @@ export const useAuthStore = defineStore('auth', () => {
     organizationName,
     login,
     verifyOtp,
+    resendOtp,
     fetchProfile,
     logout,
   }

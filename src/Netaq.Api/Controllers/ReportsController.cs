@@ -297,9 +297,267 @@ public class ReportsController : ControllerBase
 
         return Ok(ApiResponse<AuditSummaryReportDto>.Success(report));
     }
+
+    /// <summary>
+    /// Generate a custom report based on user-defined parameters.
+    /// Allows selecting report type, date range, filters, and grouping.
+    /// </summary>
+    [HttpPost("custom")]
+    public async Task<ActionResult<ApiResponse<CustomReportResultDto>>> GenerateCustomReport(
+        [FromBody] CustomReportRequest request)
+    {
+        if (!_currentUser.OrganizationId.HasValue)
+            return Unauthorized();
+
+        var orgId = _currentUser.OrganizationId.Value;
+        var from = request.FromDate ?? DateTime.UtcNow.AddDays(-90);
+        var to = request.ToDate ?? DateTime.UtcNow;
+
+        var result = new CustomReportResultDto
+        {
+            ReportTitle = request.ReportTitle ?? $"Custom Report - {DateTime.UtcNow:yyyy-MM-dd}",
+            GeneratedAt = DateTime.UtcNow,
+            PeriodFrom = from,
+            PeriodTo = to,
+            Sections = new List<ReportSectionDto>()
+        };
+
+        // Build sections based on selected data sources
+        if (request.IncludeTenders)
+        {
+            var tenders = await _context.Tenders
+                .Where(t => t.OrganizationId == orgId && t.CreatedAt >= from && t.CreatedAt <= to)
+                .ToListAsync();
+
+            var tenderSection = new ReportSectionDto
+            {
+                SectionTitle = "Tender Analysis",
+                SectionTitleAr = "تحليل المنافسات",
+                TotalCount = tenders.Count,
+                TotalValue = tenders.Sum(t => t.EstimatedValue),
+                Breakdown = new List<BreakdownItemDto>()
+            };
+
+            // Group by selected dimension
+            if (request.GroupBy == "status" || request.GroupBy == null)
+            {
+                tenderSection.Breakdown = tenders.GroupBy(t => t.Status)
+                    .Select(g => new BreakdownItemDto
+                    {
+                        Label = g.Key.ToString(),
+                        Count = g.Count(),
+                        Value = g.Sum(t => t.EstimatedValue)
+                    }).OrderByDescending(x => x.Count).ToList();
+            }
+            else if (request.GroupBy == "type")
+            {
+                tenderSection.Breakdown = tenders.GroupBy(t => t.TenderType)
+                    .Select(g => new BreakdownItemDto
+                    {
+                        Label = g.Key.ToString(),
+                        Count = g.Count(),
+                        Value = g.Sum(t => t.EstimatedValue)
+                    }).OrderByDescending(x => x.Count).ToList();
+            }
+            else if (request.GroupBy == "month")
+            {
+                tenderSection.Breakdown = tenders.GroupBy(t => $"{t.CreatedAt.Year}-{t.CreatedAt.Month:D2}")
+                    .Select(g => new BreakdownItemDto
+                    {
+                        Label = g.Key,
+                        Count = g.Count(),
+                        Value = g.Sum(t => t.EstimatedValue)
+                    }).OrderBy(x => x.Label).ToList();
+            }
+
+            // Apply status filter if specified
+            if (request.TenderStatusFilter.HasValue)
+            {
+                tenderSection.TotalCount = tenders.Count(t => t.Status == request.TenderStatusFilter.Value);
+                tenderSection.TotalValue = tenders.Where(t => t.Status == request.TenderStatusFilter.Value).Sum(t => t.EstimatedValue);
+            }
+
+            result.Sections.Add(tenderSection);
+        }
+
+        if (request.IncludeWorkflows)
+        {
+            var workflows = await _context.WorkflowInstances
+                .Where(w => w.OrganizationId == orgId && w.CreatedAt >= from && w.CreatedAt <= to)
+                .ToListAsync();
+
+            var completed = workflows.Where(w => w.Status == WorkflowInstanceStatus.Completed && w.CompletedAt.HasValue).ToList();
+
+            result.Sections.Add(new ReportSectionDto
+            {
+                SectionTitle = "Workflow Performance",
+                SectionTitleAr = "أداء سير العمل",
+                TotalCount = workflows.Count,
+                Breakdown = workflows.GroupBy(w => w.Status)
+                    .Select(g => new BreakdownItemDto
+                    {
+                        Label = g.Key.ToString(),
+                        Count = g.Count()
+                    }).OrderByDescending(x => x.Count).ToList(),
+                Metrics = new Dictionary<string, double>
+                {
+                    ["completionRate"] = workflows.Any() ? Math.Round((double)completed.Count / workflows.Count * 100, 1) : 0,
+                    ["avgCompletionDays"] = completed.Any() ? Math.Round(completed.Average(w => (w.CompletedAt!.Value - w.CreatedAt).TotalDays), 1) : 0
+                }
+            });
+        }
+
+        if (request.IncludeTasks)
+        {
+            var tasks = await _context.UserTasks
+                .Where(t => _context.Users.Any(u => u.Id == t.AssignedUserId && u.OrganizationId == orgId))
+                .Where(t => t.CreatedAt >= from && t.CreatedAt <= to)
+                .ToListAsync();
+
+            result.Sections.Add(new ReportSectionDto
+            {
+                SectionTitle = "Task Management",
+                SectionTitleAr = "إدارة المهام",
+                TotalCount = tasks.Count,
+                Breakdown = tasks.GroupBy(t => t.Status)
+                    .Select(g => new BreakdownItemDto
+                    {
+                        Label = g.Key.ToString(),
+                        Count = g.Count()
+                    }).OrderByDescending(x => x.Count).ToList(),
+                Metrics = new Dictionary<string, double>
+                {
+                    ["overdueCount"] = tasks.Count(t => t.SlaStatus == SlaStatus.Overdue),
+                    ["escalatedCount"] = tasks.Count(t => t.Status == UserTaskStatus.Escalated),
+                    ["completionRate"] = tasks.Any() ? Math.Round((double)tasks.Count(t => t.Status == UserTaskStatus.Completed) / tasks.Count * 100, 1) : 0
+                }
+            });
+        }
+
+        if (request.IncludeInquiries)
+        {
+            var inquiries = await _context.Inquiries
+                .Where(i => i.CreatedAt >= from && i.CreatedAt <= to)
+                .ToListAsync();
+
+            result.Sections.Add(new ReportSectionDto
+            {
+                SectionTitle = "Inquiry Management",
+                SectionTitleAr = "إدارة الاستفسارات",
+                TotalCount = inquiries.Count,
+                Breakdown = inquiries.GroupBy(i => i.Status)
+                    .Select(g => new BreakdownItemDto
+                    {
+                        Label = g.Key.ToString(),
+                        Count = g.Count()
+                    }).OrderByDescending(x => x.Count).ToList(),
+                Metrics = new Dictionary<string, double>
+                {
+                    ["respondedCount"] = inquiries.Count(i => i.Status == InquiryStatus.Responded),
+                    ["avgResponseHours"] = inquiries.Where(i => i.RespondedAt.HasValue)
+                        .Select(i => (i.RespondedAt!.Value - i.CreatedAt).TotalHours)
+                        .DefaultIfEmpty(0).Average()
+                }
+            });
+        }
+
+        if (request.IncludeCommittees)
+        {
+            var committees = await _context.Committees
+                .Where(c => c.OrganizationId == orgId)
+                .Include(c => c.Members)
+                .ToListAsync();
+
+            result.Sections.Add(new ReportSectionDto
+            {
+                SectionTitle = "Committee Overview",
+                SectionTitleAr = "نظرة عامة على اللجان",
+                TotalCount = committees.Count,
+                Breakdown = committees.GroupBy(c => c.Type)
+                    .Select(g => new BreakdownItemDto
+                    {
+                        Label = g.Key.ToString(),
+                        Count = g.Count()
+                    }).ToList(),
+                Metrics = new Dictionary<string, double>
+                {
+                    ["activeCount"] = committees.Count(c => c.IsActive),
+                    ["totalMembers"] = committees.Sum(c => c.Members.Count)
+                }
+            });
+        }
+
+        return Ok(ApiResponse<CustomReportResultDto>.Success(result));
+    }
+
+    /// <summary>
+    /// Get list of available report types for the custom report builder.
+    /// </summary>
+    [HttpGet("available-types")]
+    public ActionResult<ApiResponse<List<AvailableReportTypeDto>>> GetAvailableReportTypes()
+    {
+        var types = new List<AvailableReportTypeDto>
+        {
+            new() { Key = "tenders", NameAr = "المنافسات", NameEn = "Tenders", DescriptionAr = "تحليل حالة المنافسات وقيمها وأنواعها", DescriptionEn = "Analyze tender status, values, and types" },
+            new() { Key = "workflows", NameAr = "سير العمل", NameEn = "Workflows", DescriptionAr = "أداء سير العمل ومعدلات الإنجاز", DescriptionEn = "Workflow performance and completion rates" },
+            new() { Key = "tasks", NameAr = "المهام", NameEn = "Tasks", DescriptionAr = "إدارة المهام والالتزام بالمواعيد", DescriptionEn = "Task management and SLA compliance" },
+            new() { Key = "inquiries", NameAr = "الاستفسارات", NameEn = "Inquiries", DescriptionAr = "إدارة الاستفسارات وأوقات الاستجابة", DescriptionEn = "Inquiry management and response times" },
+            new() { Key = "committees", NameAr = "اللجان", NameEn = "Committees", DescriptionAr = "نظرة عامة على اللجان وأعضائها", DescriptionEn = "Committee overview and membership" }
+        };
+        return Ok(ApiResponse<List<AvailableReportTypeDto>>.Success(types));
+    }
 }
 
 // ===== Report DTOs =====
+
+public class CustomReportRequest
+{
+    public string? ReportTitle { get; set; }
+    public DateTime? FromDate { get; set; }
+    public DateTime? ToDate { get; set; }
+    public string? GroupBy { get; set; } // "status", "type", "month"
+    public bool IncludeTenders { get; set; }
+    public bool IncludeWorkflows { get; set; }
+    public bool IncludeTasks { get; set; }
+    public bool IncludeInquiries { get; set; }
+    public bool IncludeCommittees { get; set; }
+    public TenderStatus? TenderStatusFilter { get; set; }
+}
+
+public class CustomReportResultDto
+{
+    public string ReportTitle { get; set; } = string.Empty;
+    public DateTime GeneratedAt { get; set; }
+    public DateTime PeriodFrom { get; set; }
+    public DateTime PeriodTo { get; set; }
+    public List<ReportSectionDto> Sections { get; set; } = new();
+}
+
+public class ReportSectionDto
+{
+    public string SectionTitle { get; set; } = string.Empty;
+    public string SectionTitleAr { get; set; } = string.Empty;
+    public int TotalCount { get; set; }
+    public decimal TotalValue { get; set; }
+    public List<BreakdownItemDto> Breakdown { get; set; } = new();
+    public Dictionary<string, double> Metrics { get; set; } = new();
+}
+
+public class BreakdownItemDto
+{
+    public string Label { get; set; } = string.Empty;
+    public int Count { get; set; }
+    public decimal Value { get; set; }
+}
+
+public class AvailableReportTypeDto
+{
+    public string Key { get; set; } = string.Empty;
+    public string NameAr { get; set; } = string.Empty;
+    public string NameEn { get; set; } = string.Empty;
+    public string DescriptionAr { get; set; } = string.Empty;
+    public string DescriptionEn { get; set; } = string.Empty;
+}
 
 public class TenderStatusReportDto
 {

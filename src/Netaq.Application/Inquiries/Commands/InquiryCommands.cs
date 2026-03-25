@@ -338,3 +338,168 @@ public class AssignInquiryCommandHandler : IRequestHandler<AssignInquiryCommand,
         return ApiResponse<InquiryDto>.Success(dto, "Inquiry assigned successfully.");
     }
 }
+
+// ==================== Escalate Inquiry ====================
+public record EscalateInquiryCommand(Guid InquiryId, Guid EscalatedToUserId, string Reason) : IRequest<ApiResponse<InquiryDto>>;
+
+public class EscalateInquiryCommandHandler : IRequestHandler<EscalateInquiryCommand, ApiResponse<InquiryDto>>
+{
+    private readonly IApplicationDbContext _context;
+    private readonly ICurrentUserService _currentUser;
+
+    public EscalateInquiryCommandHandler(IApplicationDbContext context, ICurrentUserService currentUser)
+    {
+        _context = context;
+        _currentUser = currentUser;
+    }
+
+    public async Task<ApiResponse<InquiryDto>> Handle(EscalateInquiryCommand request, CancellationToken cancellationToken)
+    {
+        var inquiry = await _context.Inquiries
+            .Include(i => i.Tender)
+            .Include(i => i.SubmittedByUser)
+            .FirstOrDefaultAsync(i => i.Id == request.InquiryId, cancellationToken);
+
+        if (inquiry == null)
+            return ApiResponse<InquiryDto>.Failure("Inquiry not found.");
+
+        if (inquiry.Status == InquiryStatus.Closed)
+            return ApiResponse<InquiryDto>.Failure("Cannot escalate a closed inquiry.");
+
+        var escalateTo = await _context.Users.FindAsync(new object[] { request.EscalatedToUserId }, cancellationToken);
+        if (escalateTo == null)
+            return ApiResponse<InquiryDto>.Failure("Escalation target user not found.");
+
+        inquiry.AssignedToUserId = request.EscalatedToUserId;
+        inquiry.Status = InquiryStatus.Escalated;
+        inquiry.Priority = InquiryPriority.Urgent;
+        inquiry.UpdatedAt = DateTime.UtcNow;
+        inquiry.UpdatedBy = _currentUser.UserId;
+
+        // Create escalation task
+        var task = new UserTask
+        {
+            OrganizationId = inquiry.OrganizationId,
+            AssignedUserId = request.EscalatedToUserId,
+            WorkflowInstanceId = Guid.Empty,
+            WorkflowStepId = Guid.Empty,
+            TitleAr = $"استفسار مُصعّد: {inquiry.SubjectAr}",
+            TitleEn = $"Escalated Inquiry: {inquiry.SubjectEn}",
+            DescriptionAr = $"تم تصعيد هذا الاستفسار. السبب: {request.Reason}",
+            DescriptionEn = $"This inquiry has been escalated. Reason: {request.Reason}",
+            Status = UserTaskStatus.Pending,
+            Priority = TaskPriority.Critical,
+            EntityId = inquiry.Id,
+            EntityType = "Inquiry",
+            DueDate = DateTime.UtcNow.AddDays(1),
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = _currentUser.UserId
+        };
+        _context.UserTasks.Add(task);
+
+        await CreateCommitteeCommandHandler.LogAuditAsync(_context, _currentUser, "InquiryEscalated",
+            $"Inquiry '{inquiry.SubjectEn}' escalated to '{escalateTo.Email}'. Reason: {request.Reason}",
+            "Inquiry", inquiry.Id, null, inquiry, cancellationToken);
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        var dto = CreateInquiryCommandHandler.MapToDto(inquiry, inquiry.Tender, inquiry.SubmittedByUser, escalateTo);
+        return ApiResponse<InquiryDto>.Success(dto, "Inquiry escalated successfully.");
+    }
+}
+
+// ==================== Reopen Inquiry ====================
+public record ReopenInquiryCommand(Guid InquiryId) : IRequest<ApiResponse<InquiryDto>>;
+
+public class ReopenInquiryCommandHandler : IRequestHandler<ReopenInquiryCommand, ApiResponse<InquiryDto>>
+{
+    private readonly IApplicationDbContext _context;
+    private readonly ICurrentUserService _currentUser;
+
+    public ReopenInquiryCommandHandler(IApplicationDbContext context, ICurrentUserService currentUser)
+    {
+        _context = context;
+        _currentUser = currentUser;
+    }
+
+    public async Task<ApiResponse<InquiryDto>> Handle(ReopenInquiryCommand request, CancellationToken cancellationToken)
+    {
+        var inquiry = await _context.Inquiries
+            .Include(i => i.Tender)
+            .Include(i => i.SubmittedByUser)
+            .Include(i => i.AssignedToUser)
+            .FirstOrDefaultAsync(i => i.Id == request.InquiryId, cancellationToken);
+
+        if (inquiry == null)
+            return ApiResponse<InquiryDto>.Failure("Inquiry not found.");
+
+        if (inquiry.Status != InquiryStatus.Closed && inquiry.Status != InquiryStatus.Responded)
+            return ApiResponse<InquiryDto>.Failure("Only closed or responded inquiries can be reopened.");
+
+        inquiry.Status = InquiryStatus.Reopened;
+        inquiry.ClosedAt = null;
+        inquiry.UpdatedAt = DateTime.UtcNow;
+        inquiry.UpdatedBy = _currentUser.UserId;
+
+        await CreateCommitteeCommandHandler.LogAuditAsync(_context, _currentUser, "InquiryReopened",
+            $"Inquiry '{inquiry.SubjectEn}' reopened",
+            "Inquiry", inquiry.Id, null, inquiry, cancellationToken);
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        var dto = CreateInquiryCommandHandler.MapToDto(inquiry, inquiry.Tender, inquiry.SubmittedByUser, inquiry.AssignedToUser);
+        return ApiResponse<InquiryDto>.Success(dto, "Inquiry reopened successfully.");
+    }
+}
+
+// ==================== Add Internal Note ====================
+public record AddInquiryNoteCommand(Guid InquiryId, string NoteAr, string NoteEn) : IRequest<ApiResponse<InquiryDto>>;
+
+public class AddInquiryNoteCommandHandler : IRequestHandler<AddInquiryNoteCommand, ApiResponse<InquiryDto>>
+{
+    private readonly IApplicationDbContext _context;
+    private readonly ICurrentUserService _currentUser;
+
+    public AddInquiryNoteCommandHandler(IApplicationDbContext context, ICurrentUserService currentUser)
+    {
+        _context = context;
+        _currentUser = currentUser;
+    }
+
+    public async Task<ApiResponse<InquiryDto>> Handle(AddInquiryNoteCommand request, CancellationToken cancellationToken)
+    {
+        var inquiry = await _context.Inquiries
+            .Include(i => i.Tender)
+            .Include(i => i.SubmittedByUser)
+            .Include(i => i.AssignedToUser)
+            .FirstOrDefaultAsync(i => i.Id == request.InquiryId, cancellationToken);
+
+        if (inquiry == null)
+            return ApiResponse<InquiryDto>.Failure("Inquiry not found.");
+
+        // Store internal notes in the inquiry (append to response fields as internal notes)
+        var noteTimestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm");
+        var notePrefix = $"[ملاحظة داخلية - {noteTimestamp}]: ";
+        var notePrefixEn = $"[Internal Note - {noteTimestamp}]: ";
+
+        inquiry.InternalNotesAr = string.IsNullOrEmpty(inquiry.InternalNotesAr)
+            ? notePrefix + request.NoteAr
+            : inquiry.InternalNotesAr + "\n" + notePrefix + request.NoteAr;
+
+        inquiry.InternalNotesEn = string.IsNullOrEmpty(inquiry.InternalNotesEn)
+            ? notePrefixEn + request.NoteEn
+            : inquiry.InternalNotesEn + "\n" + notePrefixEn + request.NoteEn;
+
+        inquiry.UpdatedAt = DateTime.UtcNow;
+        inquiry.UpdatedBy = _currentUser.UserId;
+
+        await CreateCommitteeCommandHandler.LogAuditAsync(_context, _currentUser, "InquiryNoteAdded",
+            $"Internal note added to inquiry '{inquiry.SubjectEn}'",
+            "Inquiry", inquiry.Id, null, inquiry, cancellationToken);
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        var dto = CreateInquiryCommandHandler.MapToDto(inquiry, inquiry.Tender, inquiry.SubmittedByUser, inquiry.AssignedToUser);
+        return ApiResponse<InquiryDto>.Success(dto, "Note added successfully.");
+    }
+}

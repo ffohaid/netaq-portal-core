@@ -91,6 +91,16 @@ public class Inquiry : BaseEntity, ITenantEntity
     /// </summary>
     public DateTime? ClosedAt { get; set; }
 
+    /// <summary>
+    /// Internal notes in Arabic (visible only to staff).
+    /// </summary>
+    public string? InternalNotesAr { get; set; }
+
+    /// <summary>
+    /// Internal notes in English (visible only to staff).
+    /// </summary>
+    public string? InternalNotesEn { get; set; }
+
     // Navigation properties
     public Organization Organization { get; set; } = null!;
     public Tender Tender { get; set; } = null!;

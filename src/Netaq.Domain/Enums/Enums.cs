@@ -447,9 +447,9 @@ public enum InquiryStatus
     UnderReview = 2,
     Responded = 3,
     Closed = 4,
-    Escalated = 5
+    Escalated = 5,
+    Reopened = 6
 }
-
 /// <summary>
 /// Inquiry priority levels.
 /// </summary>
