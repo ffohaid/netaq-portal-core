@@ -16,6 +16,7 @@ const sidebarOpen = ref(true)
 const notifications = ref<any[]>([])
 const showNotifications = ref(false)
 const currentLocale = ref(getCurrentLocale())
+const showUserMenu = ref(false)
 
 const isRtl = computed(() => currentLocale.value === 'ar')
 
@@ -122,21 +123,28 @@ const unreadCount = computed(() => notifications.value.filter(n => !n.read).leng
           </div>
 
           <!-- User Menu -->
-          <div class="flex items-center gap-3">
-            <div class="text-end">
-              <p class="text-sm font-medium text-gray-800">{{ authStore.userDisplayName }}</p>
-              <p class="text-xs text-gray-500">{{ authStore.organizationName }}</p>
-            </div>
-            <button
-              @click="handleLogout"
-              class="p-2 text-gray-500 hover:text-danger-500 rounded-lg hover:bg-gray-100"
-              :title="t('auth.logout')"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
+          <div class="relative flex items-center gap-3">
+            <button @click="showUserMenu = !showUserMenu" class="flex items-center gap-3 hover:bg-gray-50 rounded-lg px-3 py-1.5 transition-colors">
+              <div class="text-end">
+                <p class="text-sm font-medium text-gray-800">{{ authStore.userDisplayName }}</p>
+                <p class="text-xs text-gray-500">{{ authStore.organizationName }}</p>
+              </div>
+              <div class="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                {{ (authStore.userDisplayName || 'U').charAt(0) }}
+              </div>
             </button>
+            <!-- Dropdown -->
+            <div v-if="showUserMenu" class="absolute top-full end-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
+              <router-link :to="{ name: 'Profile' }" @click="showUserMenu = false" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                {{ t('auth.profile') }}
+              </router-link>
+              <div class="border-t border-gray-100 my-1"></div>
+              <button @click="handleLogout" class="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 w-full transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                {{ t('auth.logout') }}
+              </button>
+            </div>
           </div>
         </div>
       </header>

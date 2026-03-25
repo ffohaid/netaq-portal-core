@@ -52,6 +52,9 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     // Sprint 6 entities - Inquiries
     public DbSet<Inquiry> Inquiries => Set<Inquiry>();
 
+    // Password Reset
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

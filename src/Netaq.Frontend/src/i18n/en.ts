@@ -57,6 +57,12 @@ export default {
     phone: 'Phone Number',
     jobTitle: 'Job Title',
     confirmPassword: 'Confirm Password',
+    backToLogin: 'Back to Login',
+    resetPassword: 'Reset Password',
+    newPassword: 'New Password',
+    confirmNewPassword: 'Confirm New Password',
+    profile: 'My Profile',
+    changePassword: 'Change Password',
   },
   nav: {
     dashboard: 'Dashboard',

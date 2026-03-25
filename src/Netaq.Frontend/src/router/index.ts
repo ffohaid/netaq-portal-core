@@ -22,6 +22,16 @@ const router = createRouter({
           name: 'AcceptInvitation',
           component: () => import('../views/auth/AcceptInvitationView.vue'),
         },
+        {
+          path: 'forgot-password',
+          name: 'ForgotPassword',
+          component: () => import('../views/auth/ForgotPasswordView.vue'),
+        },
+        {
+          path: 'reset-password',
+          name: 'ResetPassword',
+          component: () => import('../views/auth/ResetPasswordView.vue'),
+        },
       ],
     },
     {
@@ -42,6 +52,12 @@ const router = createRouter({
           path: 'tasks',
           name: 'Tasks',
           component: () => import('../views/tasks/TaskListView.vue'),
+        },
+        // User Profile
+        {
+          path: 'profile',
+          name: 'UserProfile',
+          component: () => import('../views/profile/UserProfileView.vue'),
         },
         // Sprint 2: Tenders
         {
@@ -75,7 +91,7 @@ const router = createRouter({
           name: 'TemplateDetail',
           component: () => import('../views/templates/TemplateDetailView.vue'),
         },
-        // Sprint 6: Committees
+        // Committees
         {
           path: 'committees',
           name: 'CommitteeList',
@@ -94,7 +110,7 @@ const router = createRouter({
           component: () => import('../views/committees/CommitteeDetailView.vue'),
           meta: { roles: ['SystemAdmin', 'OrganizationAdmin', 'DepartmentManager'] },
         },
-        // Sprint 6: Inquiries
+        // Inquiries
         {
           path: 'inquiries',
           name: 'InquiryList',
@@ -110,14 +126,14 @@ const router = createRouter({
           name: 'InquiryDetail',
           component: () => import('../views/inquiries/InquiryDetailView.vue'),
         },
-        // Sprint 6: Permission Matrix
+        // Permission Matrix
         {
           path: 'admin/permissions',
           name: 'PermissionMatrix',
           component: () => import('../views/permissions/PermissionMatrixView.vue'),
           meta: { roles: ['SystemAdmin'] },
         },
-        // Existing routes
+        // Workflows
         {
           path: 'workflows',
           name: 'Workflows',
@@ -144,14 +160,14 @@ const router = createRouter({
           component: () => import('../views/admin/UserManagementView.vue'),
           meta: { roles: ['SystemAdmin', 'OrganizationAdmin'] },
         },
-        // ===== Sprint 4: Reports =====
+        // Reports
         {
           path: 'reports',
           name: 'Reports',
           component: () => import('../views/reports/ReportsView.vue'),
           meta: { roles: ['SystemAdmin', 'OrganizationAdmin', 'DepartmentManager'] },
         },
-        // ===== Sprint 4: Settings =====
+        // Settings
         {
           path: 'settings/organization',
           name: 'OrganizationSettings',
@@ -192,7 +208,7 @@ router.beforeEach((to, _from, next) => {
   
   if (to.meta.requiresAuth && !token) {
     next({ name: 'Login' })
-  } else if (to.path.startsWith('/auth') && token && to.name !== 'AcceptInvitation') {
+  } else if (to.path.startsWith('/auth') && token && to.name !== 'AcceptInvitation' && to.name !== 'ForgotPassword' && to.name !== 'ResetPassword') {
     next({ name: 'Dashboard' })
   } else {
     next()

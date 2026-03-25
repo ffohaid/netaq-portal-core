@@ -57,6 +57,12 @@ export default {
     phone: 'رقم الهاتف',
     jobTitle: 'المسمى الوظيفي',
     confirmPassword: 'تأكيد كلمة المرور',
+    backToLogin: 'العودة لتسجيل الدخول',
+    resetPassword: 'إعادة تعيين كلمة المرور',
+    newPassword: 'كلمة المرور الجديدة',
+    confirmNewPassword: 'تأكيد كلمة المرور الجديدة',
+    profile: 'الملف الشخصي',
+    changePassword: 'تغيير كلمة المرور',
   },
   nav: {
     dashboard: 'لوحة التحكم',

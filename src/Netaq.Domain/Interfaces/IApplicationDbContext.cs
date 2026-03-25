@@ -47,5 +47,8 @@ public interface IApplicationDbContext
     // Sprint 6 entities - Inquiries
     DbSet<Inquiry> Inquiries { get; }
     
+    // Password Reset
+    DbSet<PasswordResetToken> PasswordResetTokens { get; }
+    
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
