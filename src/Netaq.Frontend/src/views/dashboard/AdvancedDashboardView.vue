@@ -12,6 +12,15 @@ const dashboardStore = useDashboardStore()
 const taskStore = useTaskStore()
 const locale = computed(() => getCurrentLocale())
 
+const committeeStatusLabel = (status: string) => {
+  const labels: Record<string, Record<string, string>> = {
+    Active: { ar: 'نشطة', en: 'Active' },
+    Pending: { ar: 'معلقة', en: 'Pending' },
+    Dissolved: { ar: 'منحلة', en: 'Dissolved' },
+  }
+  return labels[status]?.[locale.value] || status
+}
+
 const activeView = ref<'executive' | 'operational' | 'committee' | 'monitoring'>('executive')
 
 const isAdmin = computed(() => {
@@ -500,7 +509,7 @@ function getStatusClass(status: string) {
                       'badge-success': committee.status === 'Active',
                       'badge-warning': committee.status === 'Pending',
                       'badge-info': committee.status === 'Dissolved',
-                    }}>{{ committee.status === 'Active' ? (locale === 'ar' ? 'نشطة' : 'Active') : committee.status === 'Dissolved' ? (locale === 'ar' ? 'منحلة' : 'Dissolved') : committee.status === 'Pending' ? (locale === 'ar' ? 'معلقة' : 'Pending') : committee.status }}</span>
+                    }}>{{ committeeStatusLabel(committee.status) }}</span>
                   </td>
                   <td class="py-3 text-gray-500">{{ committee.memberCount }}</td>
                   <td class="py-3 text-gray-500 text-xs">{{ locale === 'ar' ? committee.tenderTitleAr : committee.tenderTitleEn }}</td>
