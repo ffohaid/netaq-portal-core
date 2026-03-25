@@ -54,8 +54,11 @@ public static class DatabaseSeeder
         foreach (var user in users)
             context.Users.Add(user);
 
+        // Save Organization and Users first (required for FK constraints)
+        await context.SaveChangesAsync();
+
         // ========== 3. Permission Matrix (all roles × all phases) ==========
-        var permissions = CreatePermissionMatrix();
+        var permissions = CreatePermissionMatrix(users);
         foreach (var perm in permissions)
             context.PermissionMatrices.Add(perm);
 
@@ -150,10 +153,9 @@ public static class DatabaseSeeder
     }
 
     // ==================== Permission Matrix ====================
-    private static List<PermissionMatrix> CreatePermissionMatrix()
+     private static List<PermissionMatrix> CreatePermissionMatrix(List<User> users)
     {
         var permissions = new List<PermissionMatrix>();
-
         // Define role permissions per phase
         var rolePermissions = new Dictionary<OrganizationRole, (bool view, bool create, bool edit, bool delete, bool approve, bool reject, bool deleg, bool export)>
         {
@@ -166,14 +168,20 @@ public static class DatabaseSeeder
             [OrganizationRole.LegalAdvisor] = (true, false, true, false, false, false, false, true),
         };
 
+        // Build a lookup: role -> first user with that role
+        var roleToUser = users.GroupBy(u => u.Role).ToDictionary(g => g.Key, g => g.First().Id);
+
         foreach (TenderPhase phase in Enum.GetValues<TenderPhase>())
         {
             foreach (var (role, perms) in rolePermissions)
             {
+                // Find a user with this role, fallback to AdminId
+                var userId = roleToUser.ContainsKey(role) ? roleToUser[role] : AdminId;
                 permissions.Add(new PermissionMatrix
                 {
                     Id = Guid.NewGuid(),
                     OrganizationId = OrgId,
+                    UserId = userId,
                     TenderPhase = phase,
                     UserRole = role,
                     CanView = perms.view,
@@ -189,7 +197,6 @@ public static class DatabaseSeeder
                 });
             }
         }
-
         return permissions;
     }
 
