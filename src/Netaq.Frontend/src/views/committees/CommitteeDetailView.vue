@@ -15,7 +15,7 @@ const showDissolveModal = ref(false)
 const committeeId = route.params.id as string
 
 function getName(item: any) {
-  return locale.value === 'ar' ? (item.nameAr || item.fullNameAr) : (item.nameEn || item.fullNameEn)
+  return locale.value === 'ar' ? (item.nameAr || item.fullNameAr || item.userFullNameAr || '') : (item.nameEn || item.fullNameEn || item.userFullNameEn || '')
 }
 
 function formatDate(dateStr: string) {
@@ -150,7 +150,7 @@ onMounted(() => store.fetchCommittee(committeeId))
                   <span class="text-sm font-medium text-gray-900">{{ getName(member) }}</span>
                 </div>
               </td>
-              <td class="px-4 py-3 text-sm text-gray-600">{{ member.email }}</td>
+              <td class="px-4 py-3 text-sm text-gray-600">{{ member.userEmail || member.email }}</td>
               <td class="px-4 py-3">
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" :class="getMemberRoleClass(member.role)">
                   {{ getMemberRoleLabel(member.role) }}
