@@ -277,6 +277,7 @@ public class DashboardService : IDashboardService
             PurposeAr = c.PurposeAr,
             PurposeEn = c.PurposeEn,
             IsActive = c.IsActive,
+            Status = c.IsActive ? "Active" : "Dissolved",
             FormedAt = c.FormedAt,
             StartDate = c.StartDate,
             EndDate = c.EndDate,
@@ -299,6 +300,8 @@ public class DashboardService : IDashboardService
         {
             TotalCommittees = committees.Count,
             ActiveCount = committees.Count(c => c.IsActive),
+            PendingCount = 0, // No pending status in current model
+            DissolvedCount = committees.Count(c => !c.IsActive),
             PermanentCount = committees.Count(c => c.Type == CommitteeType.Permanent),
             TemporaryCount = committees.Count(c => c.Type == CommitteeType.Temporary),
             Committees = committeeList
@@ -413,6 +416,8 @@ public class AllCommitteesDto
 {
     public int TotalCommittees { get; set; }
     public int ActiveCount { get; set; }
+    public int PendingCount { get; set; }
+    public int DissolvedCount { get; set; }
     public int PermanentCount { get; set; }
     public int TemporaryCount { get; set; }
     public List<CommitteeDetailDto> Committees { get; set; } = new();
@@ -427,6 +432,7 @@ public class CommitteeDetailDto
     public string? PurposeAr { get; set; }
     public string? PurposeEn { get; set; }
     public bool IsActive { get; set; }
+    public string Status { get; set; } = string.Empty;
     public DateTime? FormedAt { get; set; }
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
