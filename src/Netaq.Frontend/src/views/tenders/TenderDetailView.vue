@@ -24,6 +24,7 @@ const complianceResult = ref<AiComplianceCheck | null>(null)
 const boilerplateResult = ref<AiSuggestion | null>(null)
 const showAiPanel = ref(false)
 const aiError = ref<string | null>(null)
+const aiActiveAction = ref<'compliance' | 'generate' | 'criteria' | null>(null)
 
 // Export State
 const isExporting = ref(false)
@@ -99,7 +100,8 @@ async function generateBoilerplate() {
 async function checkCompliance() {
   aiLoading.value = true
   aiError.value = null
-  showAiPanel.value = true
+  aiActiveAction.value = 'compliance'
+  complianceResult.value = null
   try {
     complianceResult.value = await tenderStore.aiCheckCompliance(tenderId)
     if (!complianceResult.value) {
@@ -112,6 +114,13 @@ async function checkCompliance() {
       ? 'حدث خطأ أثناء فحص الامتثال. يرجى المحاولة مرة أخرى.'
       : 'Error checking compliance. Please try again.'
   }
+  aiLoading.value = false
+}
+
+function resetAiState() {
+  aiActiveAction.value = null
+  complianceResult.value = null
+  aiError.value = null
   aiLoading.value = false
 }
 
@@ -404,11 +413,11 @@ onUnmounted(() => {
             </template>
           </div>
 
-          <!-- AI Side Panel -->
+          <!-- AI Side Panel (for boilerplate generation in sections tab) -->
           <div v-if="showAiPanel" class="w-80 border-s border-gray-200 bg-gray-50 p-4 overflow-y-auto">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-sm font-semibold text-gray-700">{{ t('ai.title') }}</h3>
-              <button @click="showAiPanel = false; boilerplateResult = null; complianceResult = null" class="text-gray-400 hover:text-gray-600">
+              <button @click="showAiPanel = false; boilerplateResult = null" class="text-gray-400 hover:text-gray-600">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -452,36 +461,6 @@ onUnmounted(() => {
                 </button>
               </div>
             </div>
-
-            <!-- Compliance Result -->
-            <div v-else-if="complianceResult" class="space-y-4">
-              <div class="p-3 rounded-lg" :class="complianceResult.isCompliant ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'">
-                <div class="flex items-center gap-2">
-                  <svg class="w-5 h-5" :class="complianceResult.isCompliant ? 'text-green-600' : 'text-red-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="complianceResult.isCompliant ? 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' : 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'" />
-                  </svg>
-                  <span class="font-medium text-sm" :class="complianceResult.isCompliant ? 'text-green-700' : 'text-red-700'">
-                    {{ complianceResult.isCompliant ? t('ai.compliant') : t('ai.nonCompliant') }}
-                  </span>
-                </div>
-                <p class="text-sm mt-2" :class="complianceResult.isCompliant ? 'text-green-600' : 'text-red-600'">{{ complianceResult.summary }}</p>
-              </div>
-              <div v-for="(issue, idx) in complianceResult.issues" :key="idx" class="bg-white rounded-lg border border-gray-200 p-3">
-                <div class="flex items-center justify-between mb-1">
-                  <span class="text-xs font-medium text-gray-700">{{ issue.sectionTitle }}</span>
-                  <span class="text-xs px-2 py-0.5 rounded-full"
-                    :class="{
-                      'bg-red-100 text-red-700': issue.severity === 'High',
-                      'bg-yellow-100 text-yellow-700': issue.severity === 'Medium',
-                      'bg-blue-100 text-blue-700': issue.severity === 'Low',
-                    }">
-                    {{ t(`ai.${issue.severity.toLowerCase()}`) }}
-                  </span>
-                </div>
-                <p class="text-sm text-gray-600">{{ issue.issue }}</p>
-                <p class="text-sm text-primary-600 mt-1">{{ issue.suggestion }}</p>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -498,33 +477,23 @@ onUnmounted(() => {
                 {{ t('common.noData') }}
               </div>
               <div v-else class="space-y-3">
-                <div v-for="criterion in getTechnicalCriteria()" :key="criterion.id" class="border border-gray-200 rounded-lg p-4">
-                  <div class="flex items-center justify-between">
+                <div v-for="criterion in getTechnicalCriteria()" :key="criterion.id" class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div class="flex items-center justify-between mb-2">
                     <span class="font-medium text-gray-900">{{ getTitle(criterion) }}</span>
-                    <span class="text-sm font-bold text-primary-600">{{ criterion.weight }}%</span>
+                    <span class="text-sm font-semibold text-primary-600">{{ criterion.weight }}%</span>
                   </div>
-                  <p v-if="criterion.descriptionAr || criterion.descriptionEn" class="text-sm text-gray-500 mt-1">
+                  <p v-if="criterion.descriptionAr || criterion.descriptionEn" class="text-sm text-gray-500">
                     {{ locale === 'ar' ? criterion.descriptionAr : criterion.descriptionEn }}
                   </p>
-                  <div v-if="criterion.passingThreshold" class="text-xs text-gray-400 mt-1">
-                    {{ t('criteria.passingThreshold') }}: {{ criterion.passingThreshold }}%
-                  </div>
-                  <!-- Children -->
-                  <div v-if="criterion.children?.length" class="mt-3 ms-4 space-y-2">
-                    <div v-for="child in criterion.children" :key="child.id" class="bg-gray-50 rounded-lg p-3">
-                      <div class="flex items-center justify-between">
-                        <span class="text-sm text-gray-700">{{ getTitle(child) }}</span>
-                        <span class="text-xs font-medium text-gray-500">{{ child.weight }}%</span>
-                      </div>
+                  <div v-if="criterion.children?.length" class="mt-3 space-y-2 ps-4 border-s-2 border-gray-200">
+                    <div v-for="child in criterion.children" :key="child.id" class="flex items-center justify-between">
+                      <span class="text-sm text-gray-700">{{ getTitle(child) }}</span>
+                      <span class="text-xs text-gray-500">{{ child.weight }}%</span>
                     </div>
                   </div>
-                  <span v-if="criterion.isAiSuggested" class="inline-flex items-center mt-2 text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
-                    {{ t('criteria.aiSuggested') }}
-                  </span>
                 </div>
               </div>
             </div>
-
             <!-- Financial Criteria -->
             <div>
               <div class="flex items-center justify-between mb-4">
@@ -535,22 +504,14 @@ onUnmounted(() => {
                 {{ t('common.noData') }}
               </div>
               <div v-else class="space-y-3">
-                <div v-for="criterion in getFinancialCriteria()" :key="criterion.id" class="border border-gray-200 rounded-lg p-4">
-                  <div class="flex items-center justify-between">
+                <div v-for="criterion in getFinancialCriteria()" :key="criterion.id" class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div class="flex items-center justify-between mb-2">
                     <span class="font-medium text-gray-900">{{ getTitle(criterion) }}</span>
-                    <span class="text-sm font-bold text-green-600">{{ criterion.weight }}%</span>
+                    <span class="text-sm font-semibold text-green-600">{{ criterion.weight }}%</span>
                   </div>
-                  <p v-if="criterion.descriptionAr || criterion.descriptionEn" class="text-sm text-gray-500 mt-1">
+                  <p v-if="criterion.descriptionAr || criterion.descriptionEn" class="text-sm text-gray-500">
                     {{ locale === 'ar' ? criterion.descriptionAr : criterion.descriptionEn }}
                   </p>
-                  <div v-if="criterion.children?.length" class="mt-3 ms-4 space-y-2">
-                    <div v-for="child in criterion.children" :key="child.id" class="bg-gray-50 rounded-lg p-3">
-                      <div class="flex items-center justify-between">
-                        <span class="text-sm text-gray-700">{{ getTitle(child) }}</span>
-                        <span class="text-xs font-medium text-gray-500">{{ child.weight }}%</span>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -559,7 +520,8 @@ onUnmounted(() => {
 
         <!-- AI Tab -->
         <div v-if="activeTab === 'ai'" class="p-6">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- AI Action Cards (shown when no action is active) -->
+          <div v-if="!aiActiveAction && !aiLoading" class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <button @click="checkCompliance" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-primary-400 hover:bg-primary-50 transition-colors">
               <svg class="mx-auto h-12 w-12 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -587,6 +549,115 @@ onUnmounted(() => {
                 {{ locale === 'ar' ? 'اقتراح معايير تقييم مناسبة بناءً على نوع المنافسة' : 'Suggest evaluation criteria based on tender type' }}
               </p>
             </button>
+          </div>
+
+          <!-- AI Loading State -->
+          <div v-if="aiLoading" class="flex flex-col items-center justify-center py-16">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+            <p class="text-lg font-medium text-gray-700">{{ locale === 'ar' ? 'جاري تحليل الكراسة بالذكاء الاصطناعي...' : 'Analyzing booklet with AI...' }}</p>
+            <p class="text-sm text-gray-500 mt-2">{{ locale === 'ar' ? 'قد يستغرق هذا بضع ثوانٍ' : 'This may take a few seconds' }}</p>
+          </div>
+
+          <!-- AI Error State -->
+          <div v-if="!aiLoading && aiError && aiActiveAction" class="max-w-2xl mx-auto">
+            <div class="bg-red-50 border border-red-200 rounded-xl p-6">
+              <div class="flex items-center gap-3 mb-3">
+                <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h3 class="text-lg font-semibold text-red-700">{{ locale === 'ar' ? 'خطأ في المساعد الذكي' : 'AI Assistant Error' }}</h3>
+              </div>
+              <p class="text-sm text-red-600 mb-4">{{ aiError }}</p>
+              <button @click="resetAiState" class="bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm hover:bg-red-200 transition-colors">
+                {{ locale === 'ar' ? 'العودة' : 'Go Back' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Compliance Result (shown inline in AI tab) -->
+          <div v-if="!aiLoading && !aiError && complianceResult && aiActiveAction === 'compliance'" class="max-w-4xl mx-auto space-y-6">
+            <!-- Back button -->
+            <button @click="resetAiState" class="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              {{ locale === 'ar' ? 'العودة للمساعد الذكي' : 'Back to AI Assistant' }}
+            </button>
+
+            <!-- Compliance Status Header -->
+            <div class="rounded-xl p-6" :class="complianceResult.isCompliant ? 'bg-green-50 border-2 border-green-200' : 'bg-red-50 border-2 border-red-200'">
+              <div class="flex items-center gap-4">
+                <div class="flex-shrink-0">
+                  <svg class="w-12 h-12" :class="complianceResult.isCompliant ? 'text-green-500' : 'text-red-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="complianceResult.isCompliant ? 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' : 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 class="text-xl font-bold" :class="complianceResult.isCompliant ? 'text-green-800' : 'text-red-800'">
+                    {{ complianceResult.isCompliant ? t('ai.compliant') : t('ai.nonCompliant') }}
+                  </h2>
+                  <p class="text-sm mt-1" :class="complianceResult.isCompliant ? 'text-green-600' : 'text-red-600'">
+                    {{ locale === 'ar' ? 'فحص الامتثال القانوني لنظام المنافسات والمشتريات الحكومية' : 'Legal Compliance Check for Government Procurement Law' }}
+                  </p>
+                </div>
+                <div class="ms-auto">
+                  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium" :class="complianceResult.isCompliant ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'">
+                    {{ complianceResult.issues?.length || 0 }} {{ locale === 'ar' ? 'ملاحظات' : 'Issues' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Summary -->
+            <div class="bg-white rounded-xl border border-gray-200 p-6">
+              <h3 class="text-lg font-semibold text-gray-900 mb-3">{{ locale === 'ar' ? 'ملخص التقييم' : 'Assessment Summary' }}</h3>
+              <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{{ complianceResult.summary }}</p>
+              <div class="flex items-center gap-4 mt-4 pt-4 border-t border-gray-100">
+                <span class="text-xs text-gray-400">{{ t('ai.provider') }}: {{ complianceResult.provider }}</span>
+                <span class="text-xs text-gray-400">{{ t('ai.model') || 'Model' }}: {{ complianceResult.model }}</span>
+              </div>
+            </div>
+
+            <!-- Issues List -->
+            <div v-if="complianceResult.issues?.length" class="space-y-4">
+              <h3 class="text-lg font-semibold text-gray-900">{{ locale === 'ar' ? 'الملاحظات والتوصيات' : 'Issues & Recommendations' }}</h3>
+              <div v-for="(issue, idx) in complianceResult.issues" :key="idx" class="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-sm transition-shadow">
+                <div class="flex items-start justify-between mb-3">
+                  <div class="flex items-center gap-3">
+                    <span class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-sm font-bold text-gray-600">{{ idx + 1 }}</span>
+                    <span class="font-medium text-gray-900">{{ issue.sectionTitle }}</span>
+                  </div>
+                  <span class="text-xs px-3 py-1 rounded-full font-medium"
+                    :class="{
+                      'bg-red-100 text-red-700': issue.severity === 'High',
+                      'bg-yellow-100 text-yellow-700': issue.severity === 'Medium',
+                      'bg-blue-100 text-blue-700': issue.severity === 'Low',
+                    }">
+                    {{ issue.severity === 'High' ? (locale === 'ar' ? 'عالية' : 'High') : issue.severity === 'Medium' ? (locale === 'ar' ? 'متوسطة' : 'Medium') : (locale === 'ar' ? 'منخفضة' : 'Low') }}
+                  </span>
+                </div>
+                <div class="ps-11 space-y-3">
+                  <div>
+                    <p class="text-xs font-medium text-gray-500 mb-1">{{ locale === 'ar' ? 'المشكلة' : 'Issue' }}</p>
+                    <p class="text-sm text-gray-700">{{ issue.issue }}</p>
+                  </div>
+                  <div class="bg-primary-50 rounded-lg p-3">
+                    <p class="text-xs font-medium text-primary-700 mb-1">{{ locale === 'ar' ? 'التوصية' : 'Recommendation' }}</p>
+                    <p class="text-sm text-primary-600">{{ issue.suggestion }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Re-check button -->
+            <div class="flex justify-center pt-4">
+              <button @click="checkCompliance" class="bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {{ locale === 'ar' ? 'إعادة الفحص' : 'Re-check Compliance' }}
+              </button>
+            </div>
           </div>
         </div>
 
