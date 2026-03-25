@@ -346,7 +346,7 @@ public static class DatabaseSeeder
 
         tenders.Add(new Tender
         {
-            Id = Guid.Parse("t1111111-1111-1111-1111-111111111111"),
+            Id = Guid.Parse("a1111111-1111-1111-1111-111111111111"),
             OrganizationId = OrgId,
             TitleAr = "منافسة توريد أجهزة حاسب آلي ومعدات تقنية",
             TitleEn = "Computer Equipment and IT Hardware Supply Tender",
@@ -363,7 +363,7 @@ public static class DatabaseSeeder
 
         tenders.Add(new Tender
         {
-            Id = Guid.Parse("t2222222-2222-2222-2222-222222222222"),
+            Id = Guid.Parse("a2222222-2222-2222-2222-222222222222"),
             OrganizationId = OrgId,
             TitleAr = "منافسة خدمات الصيانة والتشغيل للمباني",
             TitleEn = "Building Maintenance and Operations Services Tender",
@@ -380,7 +380,7 @@ public static class DatabaseSeeder
 
         tenders.Add(new Tender
         {
-            Id = Guid.Parse("t3333333-3333-3333-3333-333333333333"),
+            Id = Guid.Parse("a3333333-3333-3333-3333-333333333333"),
             OrganizationId = OrgId,
             TitleAr = "منافسة تطوير نظام إدارة الموارد البشرية",
             TitleEn = "HR Management System Development Tender",
@@ -397,7 +397,7 @@ public static class DatabaseSeeder
 
         tenders.Add(new Tender
         {
-            Id = Guid.Parse("t4444444-4444-4444-4444-444444444444"),
+            Id = Guid.Parse("a4444444-4444-4444-4444-444444444444"),
             OrganizationId = OrgId,
             TitleAr = "منافسة استشارات تطوير الخطة الاستراتيجية",
             TitleEn = "Strategic Plan Development Consulting Tender",
@@ -414,7 +414,7 @@ public static class DatabaseSeeder
 
         tenders.Add(new Tender
         {
-            Id = Guid.Parse("t5555555-5555-5555-5555-555555555555"),
+            Id = Guid.Parse("a5555555-5555-5555-5555-555555555555"),
             OrganizationId = OrgId,
             TitleAr = "منافسة إنشاء مبنى الفرع الجديد - المنطقة الشرقية",
             TitleEn = "New Branch Building Construction - Eastern Province",
