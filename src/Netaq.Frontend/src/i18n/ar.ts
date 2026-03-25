@@ -558,11 +558,6 @@ export default {
       Secretary: 'أمين السر',
       TechnicalAdvisor: 'مستشار فني',
     },
-    status: {
-      Active: 'نشطة',
-      Inactive: 'غير نشطة',
-      Dissolved: 'محلولة',
-    },
   },
   // ===== Sprint 6: Inquiries =====
   inquiries: {
