@@ -6,7 +6,7 @@ import { useDashboardStore } from '../../stores/dashboard'
 import { useTaskStore } from '../../stores/tasks'
 import { getCurrentLocale } from '../../i18n'
 
-const { t } = useI18n()
+const { t } = useI18n({ useScope: 'global' })
 const authStore = useAuthStore()
 const dashboardStore = useDashboardStore()
 const taskStore = useTaskStore()
@@ -468,7 +468,7 @@ function getStatusClass(status: string) {
             </div>
             <div class="p-3 bg-yellow-50 rounded-lg text-center">
               <p class="text-2xl font-bold text-yellow-700">{{ dashboardStore.allCommittees.pendingCount }}</p>
-              <p class="text-xs text-gray-500 mt-1">{{ t('committees.status.Pending') || 'معلقة' }}</p>
+              <p class="text-xs text-gray-500 mt-1">{{ t('committees.status.Pending') }}</p>
             </div>
             <div class="p-3 bg-gray-50 rounded-lg text-center">
               <p class="text-2xl font-bold text-gray-700">{{ dashboardStore.allCommittees.dissolvedCount }}</p>
