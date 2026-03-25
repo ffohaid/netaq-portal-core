@@ -278,7 +278,7 @@ public static class DatabaseSeeder
         // 1. Tender Approval Workflow
         var tenderWf = new WorkflowTemplate
         {
-            Id = Guid.Parse("w1111111-1111-1111-1111-111111111111"),
+            Id = Guid.Parse("01111111-1111-1111-1111-111111111111"),
             OrganizationId = OrgId,
             NameAr = "سير عمل اعتماد المنافسة",
             NameEn = "Tender Approval Workflow",
