@@ -26,6 +26,10 @@ public record CommitteeDto(
     string? TenderTitleEn,
     DateTime? FormedAt,
     DateTime? DissolvedAt,
+    DateTime? StartDate,
+    DateTime? EndDate,
+    string? FormationDecisionUrl,
+    string? FormationDecisionNumber,
     DateTime CreatedAt,
     int MemberCount,
     List<CommitteeMemberDto>? Members = null
@@ -50,7 +54,10 @@ public record CreateCommitteeCommand(
     CommitteeType Type,
     string? PurposeAr,
     string? PurposeEn,
-    Guid? TenderId
+    Guid? TenderId,
+    DateTime? StartDate,
+    DateTime? EndDate,
+    string? FormationDecisionNumber
 ) : IRequest<ApiResponse<CommitteeDto>>;
 
 public class CreateCommitteeCommandValidator : AbstractValidator<CreateCommitteeCommand>
@@ -101,6 +108,9 @@ public class CreateCommitteeCommandHandler : IRequestHandler<CreateCommitteeComm
             TenderId = request.Type == CommitteeType.Temporary ? request.TenderId : null,
             IsActive = true,
             FormedAt = DateTime.UtcNow,
+            StartDate = request.StartDate,
+            EndDate = request.EndDate,
+            FormationDecisionNumber = request.FormationDecisionNumber,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = _currentUser.UserId
         };
@@ -117,7 +127,8 @@ public class CreateCommitteeCommandHandler : IRequestHandler<CreateCommitteeComm
             committee.Id, committee.NameAr, committee.NameEn, committee.Type,
             committee.PurposeAr, committee.PurposeEn, committee.IsActive,
             committee.TenderId, null, null, committee.FormedAt, committee.DissolvedAt,
-            committee.CreatedAt, 0
+            committee.StartDate, committee.EndDate, committee.FormationDecisionUrl,
+            committee.FormationDecisionNumber, committee.CreatedAt, 0
         );
 
         return ApiResponse<CommitteeDto>.Success(dto, "Committee created successfully.");
@@ -169,7 +180,10 @@ public record UpdateCommitteeCommand(
     string NameAr,
     string NameEn,
     string? PurposeAr,
-    string? PurposeEn
+    string? PurposeEn,
+    DateTime? StartDate,
+    DateTime? EndDate,
+    string? FormationDecisionNumber
 ) : IRequest<ApiResponse<CommitteeDto>>;
 
 public class UpdateCommitteeCommandValidator : AbstractValidator<UpdateCommitteeCommand>
@@ -208,6 +222,9 @@ public class UpdateCommitteeCommandHandler : IRequestHandler<UpdateCommitteeComm
         committee.NameEn = request.NameEn;
         committee.PurposeAr = request.PurposeAr;
         committee.PurposeEn = request.PurposeEn;
+        committee.StartDate = request.StartDate;
+        committee.EndDate = request.EndDate;
+        committee.FormationDecisionNumber = request.FormationDecisionNumber;
         committee.UpdatedAt = DateTime.UtcNow;
         committee.UpdatedBy = _currentUser.UserId;
 
@@ -220,7 +237,9 @@ public class UpdateCommitteeCommandHandler : IRequestHandler<UpdateCommitteeComm
             committee.Id, committee.NameAr, committee.NameEn, committee.Type,
             committee.PurposeAr, committee.PurposeEn, committee.IsActive,
             committee.TenderId, null, null, committee.FormedAt, committee.DissolvedAt,
-            committee.CreatedAt, committee.Members.Count(m => m.IsActive)
+            committee.StartDate, committee.EndDate, committee.FormationDecisionUrl,
+            committee.FormationDecisionNumber, committee.CreatedAt,
+            committee.Members.Count(m => m.IsActive)
         );
 
         return ApiResponse<CommitteeDto>.Success(dto, "Committee updated successfully.");

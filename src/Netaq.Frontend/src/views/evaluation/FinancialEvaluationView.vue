@@ -49,7 +49,7 @@ async function handleSubmitFinancial() {
 }
 
 function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(value);
+  return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value) + ' ر.س';
 }
 
 function getRankBadge(rank: number): string {
@@ -91,7 +91,7 @@ onMounted(loadData);
           <tr class="border-b text-sm text-gray-500">
             <th class="py-2 text-start">{{ isAr ? 'المتنافس' : 'Vendor' }}</th>
             <th class="py-2 text-start">{{ isAr ? 'الدرجة الفنية' : 'Technical Score' }}</th>
-            <th class="py-2 text-start">{{ isAr ? 'القيمة المالية (ريال)' : 'Financial Value (SAR)' }}</th>
+            <th class="py-2 text-start">{{ isAr ? 'القيمة المالية (ر.س)' : 'Financial Value (SAR)' }}</th>
           </tr>
         </thead>
         <tbody>

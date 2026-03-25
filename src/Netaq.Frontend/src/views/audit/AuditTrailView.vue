@@ -50,7 +50,7 @@ async function verifyIntegrity() {
 }
 
 function formatTimestamp(dateStr: string) {
-  return new Date(dateStr).toLocaleString(locale.value === 'ar' ? 'ar-SA' : 'en-US', {
+  return new Date(dateStr).toLocaleString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

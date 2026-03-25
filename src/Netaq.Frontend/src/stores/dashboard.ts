@@ -110,7 +110,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     isLoading.value = true
     error.value = null
     try {
-      const response = await api.get('/reports/tenders')
+      const response = await api.get('/reports/tender-status')
       if (response.data.isSuccess) {
         tenderReport.value = response.data.data
       }

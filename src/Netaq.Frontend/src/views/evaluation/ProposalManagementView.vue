@@ -127,7 +127,7 @@ function formatFileSize(bytes: number): string {
 }
 
 function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR' }).format(value);
+  return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value) + ' ر.س';
 }
 
 function onFileSelected(event: Event) {
@@ -296,7 +296,7 @@ watch([statusFilter, currentPage], loadProposals);
             <input v-model="newProposal.vendorReferenceNumber" required class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700">{{ isAr ? 'القيمة الإجمالية (ريال)' : 'Total Value (SAR)' }}</label>
+            <label class="block text-sm font-medium text-gray-700">{{ isAr ? 'القيمة الإجمالية (ر.س)' : 'Total Value (SAR)' }}</label>
             <input v-model.number="newProposal.totalValue" type="number" min="0" step="0.01" required class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
           </div>
           <div>

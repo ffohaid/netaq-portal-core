@@ -204,7 +204,7 @@ function getProviderIcon(type: string) {
           </div>
           <div class="flex justify-between">
             <span class="text-gray-500">{{ t('settings.maxTokens') }}</span>
-            <span class="font-medium">{{ config.maxTokens.toLocaleString() }}</span>
+            <span class="font-medium">{{ new Intl.NumberFormat('en-US').format(config.maxTokens) }}</span>
           </div>
           <div v-if="config.vectorDbEndpoint" class="flex justify-between">
             <span class="text-gray-500">{{ t('settings.vectorDb') }}</span>

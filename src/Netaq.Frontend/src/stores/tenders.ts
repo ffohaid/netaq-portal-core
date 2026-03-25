@@ -106,7 +106,7 @@ export const useTenderStore = defineStore('tenders', () => {
       const response = await api.post<ApiResponse<Tender>>(`/tenders/${tenderId}/submit`)
       if (response.data.isSuccess) {
         if (currentTender.value && currentTender.value.id === tenderId) {
-          currentTender.value.status = 'UnderReview'
+          currentTender.value.status = 'PendingApproval'
         }
         return true
       }

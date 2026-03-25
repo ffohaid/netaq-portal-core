@@ -44,7 +44,7 @@ function getTitle(tender: { titleAr: string; titleEn: string }) {
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString(locale.value === 'ar' ? 'ar-SA' : 'en-US', {
+  return new Date(dateStr).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -52,7 +52,7 @@ function formatDate(dateStr: string) {
 }
 
 function formatCurrency(value: number) {
-  return new Intl.NumberFormat(locale.value === 'ar' ? 'ar-SA' : 'en-US', {
+  return new Intl.NumberFormat('en-US', {
     style: 'decimal',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -194,7 +194,7 @@ onMounted(() => {
               <div class="text-sm font-medium text-gray-900">{{ getTitle(tender) }}</div>
             </td>
             <td class="px-4 py-3 text-sm text-gray-600">{{ t(`tenders.type.${tender.tenderType}`) }}</td>
-            <td class="px-4 py-3 text-sm text-gray-600">{{ formatCurrency(tender.estimatedValue) }} {{ t('common.sar') }}</td>
+            <td class="px-4 py-3 text-sm text-gray-600">{{ formatCurrency(tender.estimatedValue) }} ر.س</td>
             <td class="px-4 py-3">
               <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" :class="getStatusClass(tender.status)">
                 {{ t(`tenders.status.${tender.status}`) }}

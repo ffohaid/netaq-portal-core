@@ -184,7 +184,7 @@ async function handleAiComparisonMatrix() {
               <div class="text-xs text-gray-500">{{ sig.role }}</div>
             </div>
             <div v-if="sig.isSigned" class="text-xs text-green-600">
-              {{ isAr ? 'تم التوقيع' : 'Signed' }} - {{ new Date(sig.signedAt!).toLocaleDateString('ar-SA') }}
+              {{ isAr ? 'تم التوقيع' : 'Signed' }} - {{ new Date(sig.signedAt!).toLocaleDateString('en-US') }}
             </div>
             <div v-else class="text-xs text-gray-400">{{ isAr ? 'بانتظار التوقيع' : 'Pending' }}</div>
           </div>

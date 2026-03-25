@@ -23,6 +23,7 @@ const aiLoading = ref(false)
 const complianceResult = ref<AiComplianceCheck | null>(null)
 const boilerplateResult = ref<AiSuggestion | null>(null)
 const showAiPanel = ref(false)
+const aiError = ref<string | null>(null)
 
 // Export State
 const isExporting = ref(false)
@@ -46,7 +47,7 @@ function getStatusClass(status: TenderStatus) {
 }
 
 function formatCurrency(value: number) {
-  return new Intl.NumberFormat(locale.value === 'ar' ? 'ar-SA' : 'en-US', {
+  return new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value)
@@ -75,18 +76,42 @@ function onSectionContentChange() {
 async function generateBoilerplate() {
   if (!activeSection.value) return
   aiLoading.value = true
+  aiError.value = null
   showAiPanel.value = true
-  boilerplateResult.value = await tenderStore.aiGenerateBoilerplate(
-    tenderId,
-    activeSection.value.sectionType
-  )
+  try {
+    boilerplateResult.value = await tenderStore.aiGenerateBoilerplate(
+      tenderId,
+      activeSection.value.sectionType
+    )
+    if (!boilerplateResult.value) {
+      aiError.value = locale.value === 'ar'
+        ? 'لم يتم الحصول على نتيجة من المساعد الذكي. تأكد من إعدادات الذكاء الاصطناعي في لوحة الإعدادات.'
+        : 'No result from AI assistant. Please check AI configuration in Settings.'
+    }
+  } catch (e: any) {
+    aiError.value = locale.value === 'ar'
+      ? 'حدث خطأ أثناء توليد المحتوى. يرجى المحاولة مرة أخرى.'
+      : 'Error generating content. Please try again.'
+  }
   aiLoading.value = false
 }
 
 async function checkCompliance() {
   aiLoading.value = true
+  aiError.value = null
   showAiPanel.value = true
-  complianceResult.value = await tenderStore.aiCheckCompliance(tenderId)
+  try {
+    complianceResult.value = await tenderStore.aiCheckCompliance(tenderId)
+    if (!complianceResult.value) {
+      aiError.value = locale.value === 'ar'
+        ? 'لم يتم الحصول على نتيجة فحص الامتثال. تأكد من إعدادات الذكاء الاصطناعي.'
+        : 'No compliance result. Please check AI configuration.'
+    }
+  } catch (e: any) {
+    aiError.value = locale.value === 'ar'
+      ? 'حدث خطأ أثناء فحص الامتثال. يرجى المحاولة مرة أخرى.'
+      : 'Error checking compliance. Please try again.'
+  }
   aiLoading.value = false
 }
 
@@ -113,11 +138,30 @@ async function handleExportDocx() {
 }
 
 // Submit for approval
+const submitLoading = ref(false)
+const submitError = ref<string | null>(null)
+const submitSuccess = ref(false)
+
 async function handleSubmitForApproval() {
+  const confirmMsg = locale.value === 'ar'
+    ? 'هل أنت متأكد من إرسال الكراسة للاعتماد؟ لن تتمكن من التعديل بعد الإرسال.'
+    : 'Are you sure you want to submit for approval? You will not be able to edit after submission.'
+  if (!confirm(confirmMsg)) return
+
+  submitLoading.value = true
+  submitError.value = null
+  submitSuccess.value = false
   const success = await tenderStore.submitForApproval(tenderId)
   if (success) {
+    submitSuccess.value = true
     await tenderStore.fetchTenderById(tenderId)
+    setTimeout(() => { submitSuccess.value = false }, 5000)
+  } else {
+    submitError.value = tenderStore.error || (locale.value === 'ar'
+      ? 'فشل إرسال الكراسة للاعتماد. تأكد من اكتمال جميع الأبواب ومعايير التقييم.'
+      : 'Failed to submit. Ensure all sections and criteria are complete.')
   }
+  submitLoading.value = false
 }
 
 // Criteria helpers
@@ -181,13 +225,37 @@ onUnmounted(() => {
             <span class="text-sm text-gray-600">{{ tenderStore.currentTender.completionPercentage }}%</span>
           </div>
           <!-- Actions -->
-          <button
-            v-if="tenderStore.currentTender.status === 'Draft'"
-            @click="handleSubmitForApproval"
-            class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors text-sm"
-          >
-            {{ t('tenders.submitForApproval') }}
-          </button>
+          <div v-if="tenderStore.currentTender.status === 'Draft'" class="flex items-center gap-3">
+            <button
+              @click="handleSubmitForApproval"
+              :disabled="submitLoading"
+              class="bg-primary-600 text-white px-5 py-2.5 rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <svg v-if="submitLoading" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              {{ submitLoading ? (locale === 'ar' ? 'جاري الإرسال...' : 'Submitting...') : t('tenders.submitForApproval') }}
+            </button>
+          </div>
+          <div v-else-if="tenderStore.currentTender.status === 'PendingApproval'" class="flex items-center gap-2 bg-yellow-50 border border-yellow-200 px-4 py-2 rounded-lg">
+            <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span class="text-sm font-medium text-yellow-700">{{ locale === 'ar' ? 'بانتظار الاعتماد' : 'Pending Approval' }}</span>
+          </div>
+          <div v-else-if="tenderStore.currentTender.status === 'Approved'" class="flex items-center gap-2 bg-green-50 border border-green-200 px-4 py-2 rounded-lg">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span class="text-sm font-medium text-green-700">{{ locale === 'ar' ? 'معتمدة' : 'Approved' }}</span>
+          </div>
+        </div>
+        <!-- Submit Status Messages -->
+        <div v-if="submitError" class="mt-3 bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
+          <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <p class="text-sm text-red-700">{{ submitError }}</p>
+          <button @click="submitError = null" class="ms-auto text-red-400 hover:text-red-600">&times;</button>
+        </div>
+        <div v-if="submitSuccess" class="mt-3 bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
+          <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <p class="text-sm text-green-700">{{ locale === 'ar' ? 'تم إرسال الكراسة للاعتماد بنجاح. تم إنشاء مهمة اعتماد للمعتمد.' : 'Tender submitted for approval successfully. An approval task has been created.' }}</p>
         </div>
       </div>
 
@@ -199,7 +267,7 @@ onUnmounted(() => {
         </div>
         <div class="bg-white rounded-xl border border-gray-200 p-4">
           <p class="text-xs text-gray-500">{{ t('tenders.estimatedValue') }}</p>
-          <p class="font-semibold text-gray-900 mt-1">{{ formatCurrency(tenderStore.currentTender.estimatedValue) }} {{ t('common.sar') }}</p>
+          <p class="font-semibold text-gray-900 mt-1">{{ formatCurrency(tenderStore.currentTender.estimatedValue) }} ر.س</p>
         </div>
         <div class="bg-white rounded-xl border border-gray-200 p-4">
           <p class="text-xs text-gray-500">{{ t('tenders.technicalWeight') }}</p>
@@ -309,35 +377,29 @@ onUnmounted(() => {
                 <div class="bg-gray-50 border-b border-gray-300 px-3 py-2 flex items-center gap-2">
                   <span class="text-xs text-gray-500">{{ t('sections.editSection') }}</span>
                 </div>
-                <textarea
-                  v-model="activeSection.contentHtml"
-                  @input="onSectionContentChange"
-                  rows="20"
+                <div
+                  contenteditable="true"
+                  @input="(e: Event) => { activeSection!.contentHtml = (e.target as HTMLElement).innerHTML; onSectionContentChange() }"
+                  v-html="activeSection.contentHtml"
                   dir="rtl"
-                  class="w-full px-4 py-3 text-sm focus:outline-none resize-none"
-                  :placeholder="locale === 'ar' ? 'ابدأ بكتابة محتوى الباب هنا...' : 'Start writing section content here...'"
-                ></textarea>
+                  class="w-full px-4 py-3 text-sm focus:outline-none min-h-[500px] prose max-w-none"
+                  :data-placeholder="locale === 'ar' ? 'ابدأ بكتابة محتوى الباب هنا...' : 'Start writing section content here...'"
+                ></div>
               </div>
               <div v-else class="prose max-w-none" dir="rtl" v-html="activeSection.contentHtml || '<p class=\'text-gray-400\'>No content</p>'"></div>
 
-              <!-- Completion Slider -->
-              <div v-if="tenderStore.currentTender.status === 'Draft'" class="mt-4 flex items-center gap-4">
+              <!-- Section Completion (auto-calculated, read-only) -->
+              <div class="mt-4 flex items-center gap-4">
                 <label class="text-sm text-gray-600">{{ t('sections.completion') }}:</label>
-                <input
-                  v-model.number="activeSection.completionPercentage"
-                  @input="onSectionContentChange"
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="5"
-                  class="flex-1"
-                />
+                <div class="flex-1 bg-gray-200 rounded-full h-2">
+                  <div class="bg-primary-500 h-2 rounded-full transition-all" :style="{ width: `${activeSection.completionPercentage}%` }"></div>
+                </div>
                 <span class="text-sm font-medium text-gray-700 w-12 text-end">{{ activeSection.completionPercentage }}%</span>
               </div>
 
               <!-- Auto-save info -->
               <div v-if="activeSection.lastAutoSavedAt" class="mt-2 text-xs text-gray-400">
-                {{ t('sections.lastSaved') }}: {{ new Date(activeSection.lastAutoSavedAt).toLocaleString(locale === 'ar' ? 'ar-SA' : 'en-US') }}
+                {{ t('sections.lastSaved') }}: {{ new Date(activeSection.lastAutoSavedAt).toLocaleString('en-US') }}
               </div>
             </template>
           </div>
@@ -356,6 +418,20 @@ onUnmounted(() => {
             <div v-if="aiLoading" class="flex flex-col items-center py-8">
               <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mb-3"></div>
               <p class="text-sm text-gray-500">{{ t('ai.generating') }}</p>
+            </div>
+
+            <!-- AI Error -->
+            <div v-else-if="aiError" class="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div class="flex items-center gap-2 mb-2">
+                <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="text-sm font-medium text-red-700">{{ locale === 'ar' ? 'خطأ في المساعد الذكي' : 'AI Assistant Error' }}</span>
+              </div>
+              <p class="text-sm text-red-600">{{ aiError }}</p>
+              <button @click="aiError = null; showAiPanel = false" class="mt-3 text-sm text-red-700 underline hover:text-red-800">
+                {{ locale === 'ar' ? 'إغلاق' : 'Close' }}
+              </button>
             </div>
 
             <!-- Boilerplate Result -->

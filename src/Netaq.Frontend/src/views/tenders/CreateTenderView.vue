@@ -207,7 +207,7 @@ async function handleSubmit() {
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('tenders.estimatedValue') }} ({{ t('common.sar') }}) *</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('tenders.estimatedValue') }} (ر.س) *</label>
             <input v-model.number="form.estimatedValue" type="number" min="0" step="1000" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
           </div>
         </div>
@@ -377,7 +377,7 @@ async function handleSubmit() {
           </div>
           <div class="bg-gray-50 rounded-lg p-4">
             <p class="text-xs text-gray-500 mb-1">{{ t('tenders.estimatedValue') }}</p>
-            <p class="font-medium text-gray-900">{{ form.estimatedValue.toLocaleString() }} {{ t('common.sar') }}</p>
+            <p class="font-medium text-gray-900">{{ new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(form.estimatedValue) }} ر.س</p>
           </div>
           <div class="bg-gray-50 rounded-lg p-4">
             <p class="text-xs text-gray-500 mb-1">{{ t('tenders.creationMethod') }}</p>

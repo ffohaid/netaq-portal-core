@@ -58,7 +58,10 @@ public class GetCommitteesQueryHandler : IRequestHandler<GetCommitteesQuery, Api
                 c.TenderId,
                 c.Tender != null ? c.Tender.TitleAr : null,
                 c.Tender != null ? c.Tender.TitleEn : null,
-                c.FormedAt, c.DissolvedAt, c.CreatedAt,
+                c.FormedAt, c.DissolvedAt,
+                c.StartDate, c.EndDate,
+                c.FormationDecisionUrl, c.FormationDecisionNumber,
+                c.CreatedAt,
                 c.Members.Count(m => m.IsActive),
                 null
             ))
@@ -114,7 +117,10 @@ public class GetCommitteeDetailQueryHandler : IRequestHandler<GetCommitteeDetail
             committee.TenderId,
             committee.Tender?.TitleAr,
             committee.Tender?.TitleEn,
-            committee.FormedAt, committee.DissolvedAt, committee.CreatedAt,
+            committee.FormedAt, committee.DissolvedAt,
+            committee.StartDate, committee.EndDate,
+            committee.FormationDecisionUrl, committee.FormationDecisionNumber,
+            committee.CreatedAt,
             members.Count,
             members
         );

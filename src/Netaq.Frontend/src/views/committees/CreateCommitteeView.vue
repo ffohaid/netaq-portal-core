@@ -19,12 +19,17 @@ const form = ref({
   purposeAr: '',
   purposeEn: '',
   tenderId: '',
+  startDate: '',
+  endDate: '',
+  formationDecisionNumber: '',
   chairUserId: '',
   memberUserIds: [] as string[],
 })
 
 const availableUsers = ref<any[]>([])
+const availableTenders = ref<any[]>([])
 const isLoadingUsers = ref(false)
+const isLoadingTenders = ref(false)
 const isSubmitting = ref(false)
 const errors = ref<Record<string, string>>({})
 
@@ -39,6 +44,20 @@ async function loadUsers() {
     // silent
   } finally {
     isLoadingUsers.value = false
+  }
+}
+
+async function loadTenders() {
+  isLoadingTenders.value = true
+  try {
+    const response = await api.get<ApiResponse<PaginatedResponse<any>>>('/tenders?pageSize=100')
+    if (response.data.isSuccess && response.data.data) {
+      availableTenders.value = response.data.data.items
+    }
+  } catch {
+    // silent
+  } finally {
+    isLoadingTenders.value = false
   }
 }
 
@@ -64,6 +83,12 @@ function validate(): boolean {
   if (!form.value.nameEn.trim()) errors.value.nameEn = t('common.required')
   if (!form.value.chairUserId) errors.value.chairUserId = t('committees.selectChair')
   if (form.value.memberUserIds.length < 2) errors.value.members = t('committees.minMembers')
+  if (form.value.type === 'AdHoc' && !form.value.tenderId) {
+    errors.value.tenderId = locale.value === 'ar' ? 'يجب ربط اللجنة المؤقتة بمنافسة' : 'Temporary committee must be linked to a tender'
+  }
+  if (form.value.startDate && form.value.endDate && new Date(form.value.startDate) > new Date(form.value.endDate)) {
+    errors.value.endDate = locale.value === 'ar' ? 'تاريخ الانتهاء يجب أن يكون بعد تاريخ البداية' : 'End date must be after start date'
+  }
   return Object.keys(errors.value).length === 0
 }
 
@@ -77,6 +102,9 @@ async function handleSubmit() {
     purposeAr: form.value.purposeAr,
     purposeEn: form.value.purposeEn,
     tenderId: form.value.tenderId || undefined,
+    startDate: form.value.startDate || undefined,
+    endDate: form.value.endDate || undefined,
+    formationDecisionNumber: form.value.formationDecisionNumber || undefined,
     chairUserId: form.value.chairUserId,
     memberUserIds: form.value.memberUserIds,
   })
@@ -86,7 +114,10 @@ async function handleSubmit() {
   }
 }
 
-onMounted(() => loadUsers())
+onMounted(() => {
+  loadUsers()
+  loadTenders()
+})
 </script>
 
 <template>
@@ -112,7 +143,12 @@ onMounted(() => loadUsers())
     <form @submit.prevent="handleSubmit" class="space-y-6">
       <!-- Basic Info -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">{{ t('committees.basicInfo') }}</h2>
+        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          {{ t('committees.basicInfo') }}
+        </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('committees.nameAr') }} *</label>
@@ -136,6 +172,18 @@ onMounted(() => loadUsers())
               <option value="AdHoc">{{ t('committees.adHoc') }}</option>
             </select>
           </div>
+          <div v-if="form.type === 'AdHoc'">
+            <label class="block text-sm font-medium text-gray-700 mb-1">{{ locale === 'ar' ? 'المنافسة المرتبطة' : 'Linked Tender' }} *</label>
+            <select v-model="form.tenderId"
+              class="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              :class="errors.tenderId ? 'border-red-300' : 'border-gray-300'">
+              <option value="">{{ locale === 'ar' ? '-- اختر المنافسة --' : '-- Select Tender --' }}</option>
+              <option v-for="tender in availableTenders" :key="tender.id" :value="tender.id">
+                {{ locale === 'ar' ? tender.titleAr : tender.titleEn }} ({{ tender.referenceNumber }})
+              </option>
+            </select>
+            <p v-if="errors.tenderId" class="text-red-500 text-xs mt-1">{{ errors.tenderId }}</p>
+          </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <div>
@@ -151,9 +199,59 @@ onMounted(() => loadUsers())
         </div>
       </div>
 
+      <!-- Committee Period & Formation Decision -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          {{ locale === 'ar' ? 'فترة اللجنة وقرار التشكيل' : 'Committee Period & Formation Decision' }}
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">{{ locale === 'ar' ? 'تاريخ البداية' : 'Start Date' }}</label>
+            <input v-model="form.startDate" type="date"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">{{ locale === 'ar' ? 'تاريخ الانتهاء' : 'End Date' }}</label>
+            <input v-model="form.endDate" type="date"
+              class="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              :class="errors.endDate ? 'border-red-300' : 'border-gray-300'" />
+            <p v-if="errors.endDate" class="text-red-500 text-xs mt-1">{{ errors.endDate }}</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">{{ locale === 'ar' ? 'رقم قرار التشكيل' : 'Formation Decision No.' }}</label>
+            <input v-model="form.formationDecisionNumber" type="text"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              :placeholder="locale === 'ar' ? 'مثال: ق-1446/25' : 'e.g., D-1446/25'" />
+          </div>
+        </div>
+        <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p class="text-sm text-blue-700 flex items-start gap-2">
+            <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {{ locale === 'ar'
+              ? 'يمكن إرفاق قرار التشكيل كمستند بعد إنشاء اللجنة من صفحة تفاصيل اللجنة. يجب أن يتضمن القرار أسماء الأعضاء وصلاحياتهم وفترة العمل.'
+              : 'The formation decision document can be attached after creating the committee from the committee details page. The decision should include member names, authorities, and work period.' }}
+          </p>
+        </div>
+      </div>
+
       <!-- Members Selection -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">{{ t('committees.selectMembers') }}</h2>
+        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          {{ t('committees.selectMembers') }}
+        </h2>
+        <p class="text-sm text-gray-500 mb-4">
+          {{ locale === 'ar'
+            ? 'اختر أعضاء اللجنة (3 أعضاء على الأقل) وحدد رئيس اللجنة. يجب أن يكون عدد الأعضاء فردياً وفقاً لنظام المنافسات والمشتريات الحكومية.'
+            : 'Select committee members (minimum 3) and designate the chair. The number of members should be odd per Government Tenders and Procurement Law.' }}
+        </p>
         <p v-if="errors.members" class="text-red-500 text-sm mb-3">{{ errors.members }}</p>
         <p v-if="errors.chairUserId" class="text-red-500 text-sm mb-3">{{ errors.chairUserId }}</p>
 
@@ -161,7 +259,7 @@ onMounted(() => loadUsers())
           <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
         </div>
 
-        <div v-else class="space-y-2">
+        <div v-else class="space-y-2 max-h-96 overflow-y-auto">
           <div
             v-for="user in availableUsers"
             :key="user.id"
@@ -176,11 +274,11 @@ onMounted(() => loadUsers())
               </div>
               <div>
                 <div class="text-sm font-medium text-gray-900">{{ getUserName(user) }}</div>
-                <div class="text-xs text-gray-500">{{ user.email }}</div>
+                <div class="text-xs text-gray-500">{{ user.email }} &middot; {{ user.role }}</div>
               </div>
             </div>
             <div v-if="form.memberUserIds.includes(user.id)" class="flex items-center gap-2">
-              <label class="text-xs text-gray-500">{{ t('committees.chair') }}</label>
+              <label class="text-xs text-gray-500 whitespace-nowrap">{{ t('committees.chair') }}</label>
               <input
                 type="radio"
                 :value="user.id"
@@ -192,8 +290,16 @@ onMounted(() => loadUsers())
           </div>
         </div>
 
-        <div class="mt-3 text-sm text-gray-500">
-          {{ t('committees.selectedCount', { count: form.memberUserIds.length }) }}
+        <div class="mt-3 flex items-center justify-between">
+          <span class="text-sm text-gray-500">
+            {{ t('committees.selectedCount', { count: form.memberUserIds.length }) }}
+          </span>
+          <span v-if="form.memberUserIds.length > 0 && form.memberUserIds.length % 2 === 0" class="text-xs text-amber-600 flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            {{ locale === 'ar' ? 'يفضل أن يكون عدد الأعضاء فردياً' : 'Odd number of members is recommended' }}
+          </span>
         </div>
       </div>
 
@@ -204,7 +310,7 @@ onMounted(() => loadUsers())
           {{ t('common.cancel') }}
         </button>
         <button type="submit" :disabled="isSubmitting"
-          class="px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium disabled:opacity-50">
+          class="px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium disabled:opacity-50 flex items-center gap-2">
           <span v-if="isSubmitting" class="flex items-center gap-2">
             <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
             {{ t('common.saving') }}

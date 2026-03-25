@@ -258,9 +258,14 @@ export interface KnowledgeBaseStatsDto {
 export interface TenderStatusReport {
   generatedAt: string
   totalTenders: number
-  byStatus: Record<string, number>
-  byType: Record<string, number>
+  totalEstimatedValue: number
+  statusBreakdown: { status: string; count: number; totalValue: number }[]
+  typeBreakdown: { tenderType: string; count: number; totalValue: number }[]
+  monthlyTrend: { year: number; month: number; count: number; totalValue: number }[]
   averageCompletionPercentage: number
+  // Legacy aliases for backward compatibility
+  byStatus?: Record<string, number>
+  byType?: Record<string, number>
 }
 
 export interface SlaComplianceReport {
@@ -278,17 +283,25 @@ export interface SlaComplianceReport {
 
 export interface UserActivityReport {
   generatedAt: string
+  periodFrom: string
+  periodTo: string
+  totalActions: number
+  uniqueActiveUsers: number
   totalUsers: number
-  activeInLast30Days: number
-  usersByRole: Record<string, number>
+  actionsByCategory: { category: string; count: number }[]
   topActiveUsers: TopActiveUserDto[]
+  dailyActivity: { date: string; count: number }[]
+  // Legacy aliases
+  activeInLast30Days?: number
+  usersByRole?: Record<string, number>
 }
 
 export interface TopActiveUserDto {
   userId: string
-  fullNameAr: string
-  fullNameEn: string
-  role: string
+  userName: string
+  fullNameAr?: string
+  fullNameEn?: string
+  role?: string
   actionCount: number
-  lastActiveAt: string
+  lastActiveAt?: string
 }

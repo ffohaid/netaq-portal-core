@@ -19,7 +19,7 @@ function getName(item: any) {
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString(locale.value === 'ar' ? 'ar-SA' : 'en-US', {
+  return new Date(dateStr).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',

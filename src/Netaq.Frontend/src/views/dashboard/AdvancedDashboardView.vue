@@ -62,7 +62,7 @@ function getTitle(item: any) {
 
 function formatDate(dateStr: string) {
   if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleDateString(locale.value === 'ar' ? 'ar-SA' : 'en-US', {
+  return new Date(dateStr).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -71,7 +71,7 @@ function formatDate(dateStr: string) {
 
 function formatDateTime(dateStr: string) {
   if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleDateString(locale.value === 'ar' ? 'ar-SA' : 'en-US', {
+  return new Date(dateStr).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -82,7 +82,7 @@ function formatDateTime(dateStr: string) {
 
 function formatCurrency(value: number) {
   if (!value) return '0'
-  return new Intl.NumberFormat(locale.value === 'ar' ? 'ar-SA' : 'en-US').format(value)
+  return new Intl.NumberFormat('en-US').format(value)
 }
 
 function getSlaClass(status: string) {
@@ -248,7 +248,7 @@ function getStatusClass(status: string) {
                 </svg>
               </div>
             </div>
-            <div class="mt-3 text-xs text-gray-500">{{ t('common.sar') }}</div>
+            <div class="mt-3 text-xs text-gray-500">ر.س</div>
           </div>
         </div>
 

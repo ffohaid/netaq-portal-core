@@ -131,6 +131,61 @@ public class SettingsController : ControllerBase
         return Ok(ApiResponse<bool>.Success(true));
     }
 
+    /// <summary>
+    /// Upload organization logo.
+    /// </summary>
+    [HttpPost("organization/logo")]
+    [Authorize(Roles = "SystemAdmin,OrganizationAdmin")]
+    public async Task<ActionResult<ApiResponse<string>>> UploadOrganizationLogo(IFormFile file)
+    {
+        if (!_currentUser.OrganizationId.HasValue)
+            return Unauthorized();
+
+        if (file == null || file.Length == 0)
+            return BadRequest(ApiResponse<string>.Failure("No file provided."));
+
+        // Validate file type
+        var allowedTypes = new[] { "image/png", "image/jpeg", "image/svg+xml", "image/webp" };
+        if (!allowedTypes.Contains(file.ContentType.ToLower()))
+            return BadRequest(ApiResponse<string>.Failure("Invalid file type. Only PNG, JPEG, SVG, and WebP are allowed."));
+
+        // Validate file size (max 2MB)
+        if (file.Length > 2 * 1024 * 1024)
+            return BadRequest(ApiResponse<string>.Failure("File size must not exceed 2MB."));
+
+        var org = await ((ApplicationDbContext)_context).Organizations
+            .FirstOrDefaultAsync(o => o.Id == _currentUser.OrganizationId.Value);
+        if (org == null)
+            return NotFound();
+
+        // Save to local storage (in production, use MinIO)
+        var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "logos");
+        Directory.CreateDirectory(uploadsDir);
+
+        var ext = Path.GetExtension(file.FileName);
+        var fileName = $"{_currentUser.OrganizationId.Value}{ext}";
+        var filePath = Path.Combine(uploadsDir, fileName);
+
+        await using var stream = new FileStream(filePath, FileMode.Create);
+        await file.CopyToAsync(stream);
+
+        var logoUrl = $"/uploads/logos/{fileName}";
+        org.LogoUrl = logoUrl;
+        org.UpdatedAt = DateTime.UtcNow;
+        org.UpdatedBy = _currentUser.UserId;
+        await _context.SaveChangesAsync();
+
+        await _auditTrailService.LogAsync(
+            _currentUser.OrganizationId.Value,
+            _currentUser.UserId,
+            AuditActionCategory.OrganizationSettings,
+            "OrganizationLogoUpdated",
+            "Organization logo uploaded",
+            "Organization", org.Id);
+
+        return Ok(ApiResponse<string>.Success(logoUrl));
+    }
+
     // ===== Authentication Settings =====
 
     /// <summary>

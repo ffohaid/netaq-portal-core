@@ -56,6 +56,26 @@ public class Committee : BaseEntity, ITenantEntity
     /// </summary>
     public DateTime? DissolvedAt { get; set; }
     
+    /// <summary>
+    /// Committee start date (effective period).
+    /// </summary>
+    public DateTime? StartDate { get; set; }
+    
+    /// <summary>
+    /// Committee end date (effective period).
+    /// </summary>
+    public DateTime? EndDate { get; set; }
+    
+    /// <summary>
+    /// Formation decision document URL (stored in MinIO).
+    /// </summary>
+    public string? FormationDecisionUrl { get; set; }
+    
+    /// <summary>
+    /// Formation decision reference number.
+    /// </summary>
+    public string? FormationDecisionNumber { get; set; }
+    
     // Navigation properties
     public Organization Organization { get; set; } = null!;
     public Tender? Tender { get; set; }

@@ -8,21 +8,26 @@ export interface Inquiry {
   tenderId: string
   tenderTitleAr?: string
   tenderTitleEn?: string
-  tenderReferenceNumber?: string
   subjectAr: string
   subjectEn: string
   questionAr: string
   questionEn: string
-  answerAr?: string
-  answerEn?: string
-  status: 'Pending' | 'Answered' | 'Rejected' | 'Escalated'
-  priority: 'Low' | 'Medium' | 'High' | 'Critical'
-  submittedByNameAr?: string
-  submittedByNameEn?: string
-  answeredByNameAr?: string
-  answeredByNameEn?: string
-  submittedAt: string
-  answeredAt?: string
+  responseAr?: string
+  responseEn?: string
+  status: 'Submitted' | 'UnderReview' | 'Responded' | 'Closed' | 'Escalated'
+  priority: 'Low' | 'Normal' | 'High' | 'Urgent'
+  category: 'General' | 'Technical' | 'Financial' | 'Legal' | 'Administrative' | 'Clarification'
+  submittedByUserId: string
+  submittedByUserNameAr?: string
+  submittedByUserNameEn?: string
+  assignedToUserId?: string
+  assignedToUserNameAr?: string
+  assignedToUserNameEn?: string
+  tenderSectionId?: string
+  dueDate?: string
+  respondedAt?: string
+  closedAt?: string
+  createdAt: string
 }
 
 export interface CreateInquiryRequest {
@@ -32,11 +37,14 @@ export interface CreateInquiryRequest {
   questionAr: string
   questionEn: string
   priority: string
+  category: string
+  tenderSectionId?: string
+  assignedToUserId?: string
 }
 
-export interface AnswerInquiryRequest {
-  answerAr: string
-  answerEn: string
+export interface RespondToInquiryRequest {
+  responseAr: string
+  responseEn: string
 }
 
 export const useInquiryStore = defineStore('inquiries', () => {
@@ -98,9 +106,9 @@ export const useInquiryStore = defineStore('inquiries', () => {
     isLoading.value = true
     error.value = null
     try {
-      const response = await api.post<ApiResponse<{ id: string }>>('/inquiries', request)
-      if (response.data.isSuccess) {
-        return response.data.data?.id
+      const response = await api.post<ApiResponse<Inquiry>>('/inquiries', request)
+      if (response.data.isSuccess && response.data.data) {
+        return response.data.data.id
       }
       error.value = response.data.error || 'Failed to create inquiry'
       return null
@@ -112,34 +120,50 @@ export const useInquiryStore = defineStore('inquiries', () => {
     }
   }
 
-  async function answerInquiry(id: string, request: AnswerInquiryRequest) {
+  async function respondToInquiry(id: string, request: RespondToInquiryRequest) {
     error.value = null
     try {
-      const response = await api.put<ApiResponse<void>>(`/inquiries/${id}/answer`, request)
+      const response = await api.put<ApiResponse<Inquiry>>(`/inquiries/${id}/respond`, request)
       if (response.data.isSuccess) {
         await fetchInquiry(id)
         return true
       }
-      error.value = response.data.error || 'Failed to answer inquiry'
+      error.value = response.data.error || 'Failed to respond to inquiry'
       return false
     } catch (err: any) {
-      error.value = err.response?.data?.error || 'Failed to answer inquiry'
+      error.value = err.response?.data?.error || 'Failed to respond to inquiry'
       return false
     }
   }
 
-  async function escalateInquiry(id: string) {
+  async function assignInquiry(id: string, assignedToUserId: string) {
     error.value = null
     try {
-      const response = await api.put<ApiResponse<void>>(`/inquiries/${id}/escalate`, {})
+      const response = await api.put<ApiResponse<Inquiry>>(`/inquiries/${id}/assign`, { assignedToUserId })
       if (response.data.isSuccess) {
         await fetchInquiry(id)
         return true
       }
-      error.value = response.data.error || 'Failed to escalate inquiry'
+      error.value = response.data.error || 'Failed to assign inquiry'
       return false
     } catch (err: any) {
-      error.value = err.response?.data?.error || 'Failed to escalate inquiry'
+      error.value = err.response?.data?.error || 'Failed to assign inquiry'
+      return false
+    }
+  }
+
+  async function closeInquiry(id: string) {
+    error.value = null
+    try {
+      const response = await api.put<ApiResponse<Inquiry>>(`/inquiries/${id}/close`, {})
+      if (response.data.isSuccess) {
+        await fetchInquiry(id)
+        return true
+      }
+      error.value = response.data.error || 'Failed to close inquiry'
+      return false
+    } catch (err: any) {
+      error.value = err.response?.data?.error || 'Failed to close inquiry'
       return false
     }
   }
@@ -154,7 +178,8 @@ export const useInquiryStore = defineStore('inquiries', () => {
     fetchInquiries,
     fetchInquiry,
     createInquiry,
-    answerInquiry,
-    escalateInquiry,
+    respondToInquiry,
+    assignInquiry,
+    closeInquiry,
   }
 })

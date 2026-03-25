@@ -350,6 +350,103 @@ public class SubmitTenderForApprovalCommandHandler : IRequestHandler<SubmitTende
         tender.UpdatedAt = DateTime.UtcNow;
         tender.UpdatedBy = _currentUser.UserId;
 
+        // === Workflow Integration ===
+        // Find an active workflow template for this organization
+        var workflowTemplate = await _context.WorkflowTemplates
+            .Include(wt => wt.Steps)
+            .Where(wt => wt.OrganizationId == tender.OrganizationId && wt.IsActive)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (workflowTemplate != null && workflowTemplate.Steps.Any())
+        {
+            var firstStep = workflowTemplate.Steps.OrderBy(s => s.Order).First();
+
+            // Create WorkflowInstance
+            var workflowInstance = new WorkflowInstance
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = tender.OrganizationId,
+                WorkflowTemplateId = workflowTemplate.Id,
+                EntityId = tender.Id,
+                EntityType = "Tender",
+                Status = WorkflowInstanceStatus.Active,
+                CurrentStepId = firstStep.Id,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = _currentUser.UserId
+            };
+            _context.WorkflowInstances.Add(workflowInstance);
+
+            // Find the user to assign the first step to
+            Guid? assigneeId = firstStep.AssignedUserId;
+            if (assigneeId == null)
+            {
+                // Find first active user with the required role
+                var assignee = await _context.Users
+                    .Where(u => u.OrganizationId == tender.OrganizationId
+                        && u.Role == firstStep.RequiredRole
+                        && u.IsActive)
+                    .FirstOrDefaultAsync(cancellationToken);
+                assigneeId = assignee?.Id;
+            }
+
+            if (assigneeId != null)
+            {
+                // Create UserTask for the approver
+                var userTask = new UserTask
+                {
+                    Id = Guid.NewGuid(),
+                    OrganizationId = tender.OrganizationId,
+                    AssignedUserId = assigneeId.Value,
+                    WorkflowInstanceId = workflowInstance.Id,
+                    WorkflowStepId = firstStep.Id,
+                    TitleAr = $"\u0627\u0639\u062a\u0645\u0627\u062f \u0643\u0631\u0627\u0633\u0629 \u0627\u0644\u0634\u0631\u0648\u0637: {tender.TitleAr}",
+                    TitleEn = $"Approve Tender Booklet: {tender.TitleEn}",
+                    DescriptionAr = $"\u0645\u0637\u0644\u0648\u0628 \u0627\u0639\u062a\u0645\u0627\u062f \u0643\u0631\u0627\u0633\u0629 \u0627\u0644\u0634\u0631\u0648\u0637 \u0648\u0627\u0644\u0645\u0648\u0627\u0635\u0641\u0627\u062a \u0644\u0644\u0645\u0646\u0627\u0641\u0633\u0629 {tender.ReferenceNumber}",
+                    DescriptionEn = $"Approval required for tender booklet {tender.ReferenceNumber}",
+                    Status = UserTaskStatus.Pending,
+                    Priority = TaskPriority.High,
+                    EntityId = tender.Id,
+                    EntityType = "Tender",
+                    DueDate = DateTime.UtcNow.AddHours(firstStep.SlaDurationHours),
+                    SlaStatus = SlaStatus.OnTrack,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = _currentUser.UserId
+                };
+                _context.UserTasks.Add(userTask);
+
+                // Create SLA Tracking
+                var slaTracking = new SlaTracking
+                {
+                    Id = Guid.NewGuid(),
+                    WorkflowInstanceId = workflowInstance.Id,
+                    WorkflowStepId = firstStep.Id,
+                    StartedAt = DateTime.UtcNow,
+                    Deadline = DateTime.UtcNow.AddHours(firstStep.SlaDurationHours),
+                    Status = SlaStatus.OnTrack,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.SlaTrackings.Add(slaTracking);
+            }
+        }
+
+        // === Audit Log ===
+        _context.AuditLogs.Add(new AuditLog
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = tender.OrganizationId,
+            UserId = _currentUser.UserId,
+            ActionCategory = AuditActionCategory.TenderManagement,
+            ActionType = "SubmitForApproval",
+            ActionDescription = $"Tender {tender.ReferenceNumber} submitted for approval",
+            EntityType = "Tender",
+            EntityId = tender.Id,
+            NewValues = System.Text.Json.JsonSerializer.Serialize(new { tender.Status, tender.ReferenceNumber }),
+            Timestamp = DateTime.UtcNow,
+            IpAddress = "system",
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = _currentUser.UserId
+        });
+
         await _context.SaveChangesAsync(cancellationToken);
 
         var dto = new TenderDto(

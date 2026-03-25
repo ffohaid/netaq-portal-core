@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Netaq.Application.Common.Interfaces;
 using Netaq.Application.Common.Models;
 using Netaq.Application.Invitations.Commands;
@@ -17,17 +18,20 @@ public class InvitationController : ControllerBase
     private readonly ICurrentUserService _currentUser;
     private readonly IEmailService _emailService;
     private readonly IAuditTrailService _auditTrailService;
+    private readonly ILogger<InvitationController> _logger;
 
     public InvitationController(
         IMediator mediator,
         ICurrentUserService currentUser,
         IEmailService emailService,
-        IAuditTrailService auditTrailService)
+        IAuditTrailService auditTrailService,
+        ILogger<InvitationController> logger)
     {
         _mediator = mediator;
         _currentUser = currentUser;
         _emailService = emailService;
         _auditTrailService = auditTrailService;
+        _logger = logger;
     }
 
     /// <summary>
@@ -52,26 +56,7 @@ public class InvitationController : ControllerBase
 
         if (result.IsSuccess)
         {
-            // Send invitation email
-            var org = await HttpContext.RequestServices
-                .GetRequiredService<Domain.Interfaces.IApplicationDbContext>()
-                .Organizations
-                .FindAsync(_currentUser.OrganizationId.Value);
-
-            if (org != null)
-            {
-                // Get the invitation token
-                var invitation = await HttpContext.RequestServices
-                    .GetRequiredService<Domain.Interfaces.IApplicationDbContext>()
-                    .Invitations
-                    .FindAsync(result.Data);
-
-                if (invitation != null)
-                {
-                    await _emailService.SendInvitationAsync(request.Email, invitation.Token, org.NameEn);
-                }
-            }
-
+            // Log audit trail first (this should always succeed)
             await _auditTrailService.LogAsync(
                 _currentUser.OrganizationId.Value, _currentUser.UserId.Value,
                 AuditActionCategory.UserManagement, "INVITATION_SENT",
@@ -79,6 +64,29 @@ public class InvitationController : ControllerBase
                 "Invitation", result.Data,
                 ipAddress: _currentUser.IpAddress,
                 userAgent: _currentUser.UserAgent);
+
+            // Try to send invitation email - non-blocking on failure
+            try
+            {
+                var dbContext = HttpContext.RequestServices
+                    .GetRequiredService<Domain.Interfaces.IApplicationDbContext>();
+
+                var org = await dbContext.Organizations.FindAsync(_currentUser.OrganizationId.Value);
+                if (org != null)
+                {
+                    var invitation = await dbContext.Invitations.FindAsync(result.Data);
+                    if (invitation != null)
+                    {
+                        await _emailService.SendInvitationAsync(request.Email, invitation.Token, org.NameEn);
+                        _logger.LogInformation("Invitation email sent successfully to {Email}", request.Email);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log the email failure but don't fail the invitation
+                _logger.LogWarning(ex, "Failed to send invitation email to {Email}. Invitation was saved successfully and can be resent later.", request.Email);
+            }
         }
 
         return result.IsSuccess ? Ok(result) : BadRequest(result);

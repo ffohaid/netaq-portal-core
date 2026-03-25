@@ -126,7 +126,7 @@ function getUserJobTitle(user: UserItem) {
 
 function formatDate(dateStr?: string) {
   if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleDateString(locale.value === 'ar' ? 'ar-SA' : 'en-US', {
+  return new Date(dateStr).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
