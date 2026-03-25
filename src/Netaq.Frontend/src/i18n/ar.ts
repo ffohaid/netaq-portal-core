@@ -196,6 +196,7 @@ export default {
     Coordinator: 'منسق',
     CommitteeChair: 'رئيس لجنة',
     CommitteeMember: 'عضو لجنة',
+    LegalAdvisor: 'مستشار قانوني',
     Viewer: 'مشاهد',
   },
   // ===== Sprint 2: Tenders =====

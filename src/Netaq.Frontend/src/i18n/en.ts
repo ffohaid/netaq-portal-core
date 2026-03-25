@@ -196,6 +196,7 @@ export default {
     Coordinator: 'Coordinator',
     CommitteeChair: 'Committee Chair',
     CommitteeMember: 'Committee Member',
+    LegalAdvisor: 'Legal Advisor',
     Viewer: 'Viewer',
   },
   // ===== Sprint 2: Tenders =====
