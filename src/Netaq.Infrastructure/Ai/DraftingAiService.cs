@@ -486,6 +486,13 @@ public class DraftingAiService : IAiDraftingService
         return result;
     }
 
+    private static string GetJsonStringOrSerialize(JsonElement element)
+    {
+        if (element.ValueKind == JsonValueKind.String)
+            return element.GetString() ?? "";
+        return element.GetRawText();
+    }
+
     private static AiComplianceCheckDto ParseComplianceCheck(string response)
     {
         var jsonStart = response.IndexOf('{');
@@ -496,20 +503,21 @@ public class DraftingAiService : IAiDraftingService
         var jsonStr = response.Substring(jsonStart, jsonEnd - jsonStart + 1);
         using var doc = JsonDocument.Parse(jsonStr);
 
-        var isCompliant = doc.RootElement.GetProperty("isCompliant").GetBoolean();
-        var summary = doc.RootElement.GetProperty("summary").GetString() ?? "";
+        var isCompliant = doc.RootElement.TryGetProperty("isCompliant", out var compProp) && compProp.ValueKind == JsonValueKind.True;
+        var summary = doc.RootElement.TryGetProperty("summary", out var summaryProp)
+            ? GetJsonStringOrSerialize(summaryProp)
+            : "";
 
         var issues = new List<ComplianceIssue>();
-        if (doc.RootElement.TryGetProperty("issues", out var issuesArray))
+        if (doc.RootElement.TryGetProperty("issues", out var issuesArray) && issuesArray.ValueKind == JsonValueKind.Array)
         {
             foreach (var issue in issuesArray.EnumerateArray())
             {
-                issues.Add(new ComplianceIssue(
-                    issue.GetProperty("sectionTitle").GetString() ?? "",
-                    issue.GetProperty("issue").GetString() ?? "",
-                    issue.GetProperty("suggestion").GetString() ?? "",
-                    issue.GetProperty("severity").GetString() ?? "Medium"
-                ));
+                var sectionTitle = issue.TryGetProperty("sectionTitle", out var st) ? GetJsonStringOrSerialize(st) : "";
+                var issueTxt = issue.TryGetProperty("issue", out var iss) ? GetJsonStringOrSerialize(iss) : "";
+                var suggestion = issue.TryGetProperty("suggestion", out var sug) ? GetJsonStringOrSerialize(sug) : "";
+                var severity = issue.TryGetProperty("severity", out var sev) ? GetJsonStringOrSerialize(sev) : "Medium";
+                issues.Add(new ComplianceIssue(sectionTitle, issueTxt, suggestion, severity));
             }
         }
 
