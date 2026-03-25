@@ -46,13 +46,13 @@ log "=========================================="
 log "[1/5] Backing up SQL Server database..."
 docker exec netaq-sqlserver /opt/mssql-tools18/bin/sqlcmd \
     -S localhost -U sa -P "${DB_PASSWORD}" -C \
-    -Q "BACKUP DATABASE NetaqDb TO DISK = '/var/opt/mssql/backup/NetaqDb_${TIMESTAMP}.bak' WITH FORMAT, COMPRESSION, STATS = 10" 2>&1 | tee -a "$LOG_FILE"
+    -Q "BACKUP DATABASE NetaqDb TO DISK = '/tmp/NetaqDb_${TIMESTAMP}.bak' WITH FORMAT, COMPRESSION, STATS = 10" 2>&1 | tee -a "$LOG_FILE"
 
 # Copy backup from container
-docker cp netaq-sqlserver:/var/opt/mssql/backup/NetaqDb_${TIMESTAMP}.bak "${BACKUP_DIR}/NetaqDb_${TIMESTAMP}.bak" 2>&1 | tee -a "$LOG_FILE"
+docker cp netaq-sqlserver:/tmp/NetaqDb_${TIMESTAMP}.bak "${BACKUP_DIR}/NetaqDb_${TIMESTAMP}.bak" 2>&1 | tee -a "$LOG_FILE"
 
 # Remove backup from container to save space
-docker exec netaq-sqlserver rm -f "/var/opt/mssql/backup/NetaqDb_${TIMESTAMP}.bak" 2>/dev/null || true
+docker exec netaq-sqlserver rm -f "/tmp/NetaqDb_${TIMESTAMP}.bak" 2>/dev/null || true
 
 log "[OK] SQL Server backup complete: NetaqDb_${TIMESTAMP}.bak"
 
