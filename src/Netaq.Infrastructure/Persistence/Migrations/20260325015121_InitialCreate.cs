@@ -1076,6 +1076,65 @@ namespace Netaq.Infrastructure.Persistence.Migrations
                         principalColumn: "Id");
                 });
 
+            migrationBuilder.CreateTable(
+                name: "Inquiries",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    TenderId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    SubmittedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    AssignedToUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    SubjectAr = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    SubjectEn = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    QuestionAr = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    QuestionEn = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ResponseAr = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ResponseEn = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    Priority = table.Column<int>(type: "int", nullable: false),
+                    Category = table.Column<int>(type: "int", nullable: false),
+                    TenderSectionId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    DueDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    RespondedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ClosedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    UpdatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Inquiries", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Inquiries_Organizations_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organizations",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Inquiries_TenderSections_TenderSectionId",
+                        column: x => x.TenderSectionId,
+                        principalTable: "TenderSections",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Inquiries_Tenders_TenderId",
+                        column: x => x.TenderId,
+                        principalTable: "Tenders",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Inquiries_Users_AssignedToUserId",
+                        column: x => x.AssignedToUserId,
+                        principalTable: "Users",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Inquiries_Users_SubmittedByUserId",
+                        column: x => x.SubmittedByUserId,
+                        principalTable: "Users",
+                        principalColumn: "Id");
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_AiConfigurations_OrganizationId",
                 table: "AiConfigurations",
@@ -1216,6 +1275,36 @@ namespace Netaq.Infrastructure.Persistence.Migrations
                 name: "IX_EvaluationScores_ProposalId_EvaluatorUserId",
                 table: "EvaluationScores",
                 columns: new[] { "ProposalId", "EvaluatorUserId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Inquiries_AssignedToUserId",
+                table: "Inquiries",
+                column: "AssignedToUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Inquiries_OrganizationId",
+                table: "Inquiries",
+                column: "OrganizationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Inquiries_Status",
+                table: "Inquiries",
+                column: "Status");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Inquiries_SubmittedByUserId",
+                table: "Inquiries",
+                column: "SubmittedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Inquiries_TenderId",
+                table: "Inquiries",
+                column: "TenderId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Inquiries_TenderSectionId",
+                table: "Inquiries",
+                column: "TenderSectionId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Invitations_OrganizationId",
@@ -1463,6 +1552,9 @@ namespace Netaq.Infrastructure.Persistence.Migrations
                 name: "EvaluationScores");
 
             migrationBuilder.DropTable(
+                name: "Inquiries");
+
+            migrationBuilder.DropTable(
                 name: "Invitations");
 
             migrationBuilder.DropTable(
@@ -1484,9 +1576,6 @@ namespace Netaq.Infrastructure.Persistence.Migrations
                 name: "SystemSettings");
 
             migrationBuilder.DropTable(
-                name: "TenderSections");
-
-            migrationBuilder.DropTable(
                 name: "UserTasks");
 
             migrationBuilder.DropTable(
@@ -1500,6 +1589,9 @@ namespace Netaq.Infrastructure.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "TenderCriteria");
+
+            migrationBuilder.DropTable(
+                name: "TenderSections");
 
             migrationBuilder.DropTable(
                 name: "Proposals");

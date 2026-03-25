@@ -734,6 +734,104 @@ namespace Netaq.Infrastructure.Persistence.Migrations
                     b.ToTable("EvaluationScores", (string)null);
                 });
 
+            modelBuilder.Entity("Netaq.Domain.Entities.Inquiry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("AssignedToUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<string>("QuestionAr")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("QuestionEn")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("RespondedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ResponseAr")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ResponseEn")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SubjectAr")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("SubjectEn")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("SubmittedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TenderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("TenderSectionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedToUserId");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("SubmittedByUserId");
+
+                    b.HasIndex("TenderId");
+
+                    b.HasIndex("TenderSectionId");
+
+                    b.ToTable("Inquiries", (string)null);
+                });
+
             modelBuilder.Entity("Netaq.Domain.Entities.Invitation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2341,6 +2439,47 @@ namespace Netaq.Infrastructure.Persistence.Migrations
                     b.Navigation("EvaluatorUser");
 
                     b.Navigation("Proposal");
+                });
+
+            modelBuilder.Entity("Netaq.Domain.Entities.Inquiry", b =>
+                {
+                    b.HasOne("Netaq.Domain.Entities.User", "AssignedToUser")
+                        .WithMany()
+                        .HasForeignKey("AssignedToUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Netaq.Domain.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Netaq.Domain.Entities.User", "SubmittedByUser")
+                        .WithMany()
+                        .HasForeignKey("SubmittedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Netaq.Domain.Entities.Tender", "Tender")
+                        .WithMany()
+                        .HasForeignKey("TenderId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Netaq.Domain.Entities.TenderSection", "TenderSection")
+                        .WithMany()
+                        .HasForeignKey("TenderSectionId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("AssignedToUser");
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("SubmittedByUser");
+
+                    b.Navigation("Tender");
+
+                    b.Navigation("TenderSection");
                 });
 
             modelBuilder.Entity("Netaq.Domain.Entities.Invitation", b =>

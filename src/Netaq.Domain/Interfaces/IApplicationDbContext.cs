@@ -44,5 +44,8 @@ public interface IApplicationDbContext
     DbSet<KnowledgeSource> KnowledgeSources { get; }
     DbSet<SystemSetting> SystemSettings { get; }
     
+    // Sprint 6 entities - Inquiries
+    DbSet<Inquiry> Inquiries { get; }
+    
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -9,6 +9,7 @@ using Netaq.Infrastructure.Export;
 using Netaq.Infrastructure.Identity;
 using Netaq.Infrastructure.Persistence;
 using Netaq.Infrastructure.Persistence.Interceptors;
+using Netaq.Application.Ai.Services;
 using Netaq.Infrastructure.Services;
 using StackExchange.Redis;
 
@@ -86,6 +87,12 @@ public static class DependencyInjection
         // Sprint 2: Document Export Service
         services.AddScoped<IDocumentExportService, DocumentExportService>();
         
+        // Sprint 3: AI Configuration Service (for EvaluationAiService)
+        services.AddScoped<IAiConfigurationService, AiConfigurationService>();
+
+        // Sprint 3: Evaluation AI Service
+        services.AddScoped<IEvaluationAiService, EvaluationAiService>();
+
         // Sprint 4: Dashboard Service
         services.AddScoped<IDashboardService, DashboardService>();
         

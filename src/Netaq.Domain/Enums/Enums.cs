@@ -435,3 +435,41 @@ public enum SystemReportType
     EvaluationSummary = 6,
     KnowledgeBaseStatistics = 7
 }
+
+// ===== Sprint 6 Enums =====
+
+/// <summary>
+/// Inquiry lifecycle status.
+/// </summary>
+public enum InquiryStatus
+{
+    Submitted = 1,
+    UnderReview = 2,
+    Responded = 3,
+    Closed = 4,
+    Escalated = 5
+}
+
+/// <summary>
+/// Inquiry priority levels.
+/// </summary>
+public enum InquiryPriority
+{
+    Low = 1,
+    Normal = 2,
+    High = 3,
+    Urgent = 4
+}
+
+/// <summary>
+/// Inquiry category/type.
+/// </summary>
+public enum InquiryCategory
+{
+    General = 1,
+    Technical = 2,
+    Financial = 3,
+    Legal = 4,
+    Administrative = 5,
+    Clarification = 6
+}

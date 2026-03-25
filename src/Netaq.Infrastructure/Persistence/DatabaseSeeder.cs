@@ -7,89 +7,474 @@ using Netaq.Domain.Enums;
 namespace Netaq.Infrastructure.Persistence;
 
 /// <summary>
-/// Seeds initial system data: default organization, system admin account,
-/// and global booklet templates (21 templates across 7 categories).
+/// Seeds initial system data: organization, users with different roles,
+/// committees, permission matrix, workflow templates, AI configuration,
+/// sample tenders, and global booklet templates (21 templates across 7 categories).
 /// Only runs on first startup when database is empty.
 /// </summary>
 public static class DatabaseSeeder
 {
+    // Fixed IDs for referencing across seed data
+    private static readonly Guid OrgId = Guid.Parse("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
+    private static readonly Guid AdminId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    private static readonly Guid ManagerId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+    private static readonly Guid CoordinatorId = Guid.Parse("33333333-3333-3333-3333-333333333333");
+    private static readonly Guid ChairId = Guid.Parse("44444444-4444-4444-4444-444444444444");
+    private static readonly Guid MemberId = Guid.Parse("55555555-5555-5555-5555-555555555555");
+    private static readonly Guid ViewerId = Guid.Parse("66666666-6666-6666-6666-666666666666");
+    private static readonly Guid AuditorId = Guid.Parse("77777777-7777-7777-7777-777777777777");
+
     public static async Task SeedAsync(ApplicationDbContext context)
     {
         // Only seed if no organizations exist
         if (await context.Organizations.IgnoreQueryFilters().AnyAsync())
         {
-            // Still seed templates if they don't exist
             await SeedTemplatesIfNeeded(context);
             return;
         }
 
-        var orgId = Guid.NewGuid();
-        var adminId = Guid.NewGuid();
-
-        // Create default organization
+        // ========== 1. Organization ==========
         var organization = new Organization
         {
-            Id = orgId,
-            NameAr = "الجهة الحكومية الافتراضية",
-            NameEn = "Default Government Entity",
-            DescriptionAr = "الجهة الحكومية الافتراضية لمنصة نِطاق",
-            DescriptionEn = "Default government entity for NETAQ Portal",
+            Id = OrgId,
+            NameAr = "وزارة المالية",
+            NameEn = "Ministry of Finance",
+            DescriptionAr = "وزارة المالية - المملكة العربية السعودية",
+            DescriptionEn = "Ministry of Finance - Kingdom of Saudi Arabia",
             Email = "admin@netaq.pro",
             ActiveAuthProvider = AuthProviderType.CustomAuth,
-            IsOtpEnabled = true,
+            IsOtpEnabled = false,
             ShowPlatformLogo = true,
             CreatedAt = DateTime.UtcNow
         };
-
         context.Organizations.Add(organization);
 
-        // Create system admin user
-        var (passwordHash, passwordSalt) = HashPassword("NetaqAdmin@2026!");
-        
-        var admin = new User
+        // ========== 2. Users (7 users with different roles) ==========
+        var users = CreateUsers();
+        foreach (var user in users)
+            context.Users.Add(user);
+
+        // ========== 3. Permission Matrix (all roles × all phases) ==========
+        var permissions = CreatePermissionMatrix();
+        foreach (var perm in permissions)
+            context.PermissionMatrices.Add(perm);
+
+        // ========== 4. Committees ==========
+        var committees = CreateCommittees();
+        foreach (var committee in committees)
         {
-            Id = adminId,
-            OrganizationId = orgId,
-            FullNameAr = "مدير النظام",
-            FullNameEn = "System Administrator",
-            Email = "admin@netaq.pro",
-            Role = OrganizationRole.SystemAdmin,
-            Status = UserStatus.Active,
-            Locale = "ar",
-            PasswordHash = passwordHash,
-            PasswordSalt = passwordSalt,
-            CreatedAt = DateTime.UtcNow
+            context.Committees.Add(committee);
+            foreach (var member in committee.Members)
+                context.CommitteeMembers.Add(member);
+        }
+
+        // ========== 5. Workflow Templates ==========
+        var workflows = CreateWorkflowTemplates();
+        foreach (var wf in workflows)
+        {
+            context.WorkflowTemplates.Add(wf);
+            foreach (var step in wf.Steps)
+                context.WorkflowSteps.Add(step);
+        }
+
+        // ========== 6. AI Configuration ==========
+        var aiConfig = new AiConfiguration
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = OrgId,
+            ProviderName = "Gemini",
+            ModelName = "gemini-2.5-flash",
+            Endpoint = "https://generativelanguage.googleapis.com/v1beta",
+            ApiKeyEncrypted = "", // To be configured by admin
+            IsActive = true,
+            MaxTokens = 4096,
+            Temperature = 0.3,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = AdminId
+        };
+        context.AiConfigurations.Add(aiConfig);
+
+        // ========== 7. Sample Tenders ==========
+        var tenders = CreateSampleTenders();
+        foreach (var tender in tenders)
+            context.Tenders.Add(tender);
+
+        // ========== 8. System Settings ==========
+        var settings = CreateSystemSettings();
+        foreach (var setting in settings)
+            context.SystemSettings.Add(setting);
+
+        await context.SaveChangesAsync();
+
+        // ========== 9. Booklet Templates ==========
+        await SeedTemplatesIfNeeded(context);
+    }
+
+    // ==================== Users ====================
+    private static List<User> CreateUsers()
+    {
+        var users = new List<User>();
+        var defaultPassword = "NetaqAdmin@2026!";
+
+        var userData = new[]
+        {
+            (AdminId, "مدير النظام", "System Administrator", "admin@netaq.pro", OrganizationRole.SystemAdmin, "ar"),
+            (ManagerId, "أحمد بن محمد العتيبي", "Ahmed Al-Otaibi", "ahmed.manager@netaq.pro", OrganizationRole.DepartmentManager, "ar"),
+            (CoordinatorId, "سارة بنت عبدالله القحطاني", "Sarah Al-Qahtani", "sarah.coordinator@netaq.pro", OrganizationRole.Coordinator, "ar"),
+            (ChairId, "د. خالد بن فهد الشمري", "Dr. Khalid Al-Shammari", "khalid.chair@netaq.pro", OrganizationRole.CommitteeChair, "ar"),
+            (MemberId, "فاطمة بنت سعد الدوسري", "Fatimah Al-Dosari", "fatimah.member@netaq.pro", OrganizationRole.CommitteeMember, "ar"),
+            (ViewerId, "نورة بنت علي الحربي", "Noura Al-Harbi", "noura.viewer@netaq.pro", OrganizationRole.Viewer, "ar"),
+            (AuditorId, "عبدالرحمن بن صالح الغامدي", "Abdulrahman Al-Ghamdi", "abdulrahman.auditor@netaq.pro", OrganizationRole.Viewer, "ar"),
         };
 
-        context.Users.Add(admin);
-
-        // Create default permission matrix for system admin (full access)
-        foreach (TenderPhase phase in Enum.GetValues<TenderPhase>())
+        foreach (var (id, nameAr, nameEn, email, role, locale) in userData)
         {
-            context.PermissionMatrices.Add(new PermissionMatrix
+            var (hash, salt) = HashPassword(defaultPassword);
+            users.Add(new User
             {
-                OrganizationId = orgId,
-                UserId = adminId,
-                TenderPhase = phase,
-                UserRole = OrganizationRole.SystemAdmin,
-                CanView = true,
-                CanCreate = true,
-                CanEdit = true,
-                CanDelete = true,
-                CanApprove = true,
-                CanReject = true,
-                CanDelegate = true,
-                CanExport = true,
+                Id = id,
+                OrganizationId = OrgId,
+                FullNameAr = nameAr,
+                FullNameEn = nameEn,
+                Email = email,
+                Role = role,
+                Status = UserStatus.Active,
+                Locale = locale,
+                PasswordHash = hash,
+                PasswordSalt = salt,
                 CreatedAt = DateTime.UtcNow
             });
         }
 
-        await context.SaveChangesAsync();
-
-        // Seed global booklet templates
-        await SeedTemplatesIfNeeded(context);
+        return users;
     }
 
+    // ==================== Permission Matrix ====================
+    private static List<PermissionMatrix> CreatePermissionMatrix()
+    {
+        var permissions = new List<PermissionMatrix>();
+
+        // Define role permissions per phase
+        var rolePermissions = new Dictionary<OrganizationRole, (bool view, bool create, bool edit, bool delete, bool approve, bool reject, bool deleg, bool export)>
+        {
+            [OrganizationRole.SystemAdmin] = (true, true, true, true, true, true, true, true),
+            [OrganizationRole.DepartmentManager] = (true, true, true, false, true, true, true, true),
+            [OrganizationRole.Coordinator] = (true, true, true, false, false, false, false, true),
+            [OrganizationRole.CommitteeChair] = (true, false, true, false, true, true, true, true),
+            [OrganizationRole.CommitteeMember] = (true, false, true, false, false, false, false, false),
+            [OrganizationRole.Viewer] = (true, false, false, false, false, false, false, true),
+            [OrganizationRole.LegalAdvisor] = (true, false, true, false, false, false, false, true),
+        };
+
+        foreach (TenderPhase phase in Enum.GetValues<TenderPhase>())
+        {
+            foreach (var (role, perms) in rolePermissions)
+            {
+                permissions.Add(new PermissionMatrix
+                {
+                    Id = Guid.NewGuid(),
+                    OrganizationId = OrgId,
+                    TenderPhase = phase,
+                    UserRole = role,
+                    CanView = perms.view,
+                    CanCreate = perms.create,
+                    CanEdit = perms.edit,
+                    CanDelete = perms.delete,
+                    CanApprove = perms.approve,
+                    CanReject = perms.reject,
+                    CanDelegate = perms.deleg,
+                    CanExport = perms.export,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = AdminId
+                });
+            }
+        }
+
+        return permissions;
+    }
+
+    // ==================== Committees ====================
+    private static List<Committee> CreateCommittees()
+    {
+        var committees = new List<Committee>();
+
+        // 1. Permanent Tender Opening Committee
+        var openingCommittee = new Committee
+        {
+            Id = Guid.Parse("c1111111-1111-1111-1111-111111111111"),
+            OrganizationId = OrgId,
+            NameAr = "لجنة فتح المظاريف",
+            NameEn = "Tender Opening Committee",
+            Type = CommitteeType.Permanent,
+            PurposeAr = "لجنة دائمة مختصة بفتح مظاريف العروض الفنية والمالية للمنافسات وفقاً لنظام المنافسات والمشتريات الحكومية",
+            PurposeEn = "Permanent committee responsible for opening technical and financial bid envelopes in accordance with the Government Tenders and Procurement Law",
+            IsActive = true,
+            FormedAt = new DateTime(2025, 1, 15, 0, 0, 0, DateTimeKind.Utc),
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = AdminId
+        };
+        openingCommittee.Members = new List<CommitteeMember>
+        {
+            new() { Id = Guid.NewGuid(), CommitteeId = openingCommittee.Id, UserId = ChairId, Role = CommitteeMemberRole.Chair, IsActive = true, JoinedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
+            new() { Id = Guid.NewGuid(), CommitteeId = openingCommittee.Id, UserId = MemberId, Role = CommitteeMemberRole.Member, IsActive = true, JoinedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
+            new() { Id = Guid.NewGuid(), CommitteeId = openingCommittee.Id, UserId = CoordinatorId, Role = CommitteeMemberRole.Secretary, IsActive = true, JoinedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
+        };
+        committees.Add(openingCommittee);
+
+        // 2. Permanent Technical Evaluation Committee
+        var techCommittee = new Committee
+        {
+            Id = Guid.Parse("c2222222-2222-2222-2222-222222222222"),
+            OrganizationId = OrgId,
+            NameAr = "لجنة الفحص والتقييم الفني",
+            NameEn = "Technical Evaluation Committee",
+            Type = CommitteeType.Permanent,
+            PurposeAr = "لجنة دائمة مختصة بفحص وتقييم العروض الفنية المقدمة في المنافسات الحكومية",
+            PurposeEn = "Permanent committee responsible for examining and evaluating technical proposals submitted in government tenders",
+            IsActive = true,
+            FormedAt = new DateTime(2025, 1, 15, 0, 0, 0, DateTimeKind.Utc),
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = AdminId
+        };
+        techCommittee.Members = new List<CommitteeMember>
+        {
+            new() { Id = Guid.NewGuid(), CommitteeId = techCommittee.Id, UserId = ChairId, Role = CommitteeMemberRole.Chair, IsActive = true, JoinedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
+            new() { Id = Guid.NewGuid(), CommitteeId = techCommittee.Id, UserId = MemberId, Role = CommitteeMemberRole.Member, IsActive = true, JoinedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
+            new() { Id = Guid.NewGuid(), CommitteeId = techCommittee.Id, UserId = ManagerId, Role = CommitteeMemberRole.Member, IsActive = true, JoinedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
+        };
+        committees.Add(techCommittee);
+
+        // 3. Permanent Procurement Review Committee
+        var reviewCommittee = new Committee
+        {
+            Id = Guid.Parse("c3333333-3333-3333-3333-333333333333"),
+            OrganizationId = OrgId,
+            NameAr = "لجنة مراجعة المشتريات",
+            NameEn = "Procurement Review Committee",
+            Type = CommitteeType.Permanent,
+            PurposeAr = "لجنة دائمة مختصة بمراجعة واعتماد إجراءات المشتريات والتوصيات النهائية",
+            PurposeEn = "Permanent committee responsible for reviewing and approving procurement procedures and final recommendations",
+            IsActive = true,
+            FormedAt = new DateTime(2025, 2, 1, 0, 0, 0, DateTimeKind.Utc),
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = AdminId
+        };
+        reviewCommittee.Members = new List<CommitteeMember>
+        {
+            new() { Id = Guid.NewGuid(), CommitteeId = reviewCommittee.Id, UserId = ManagerId, Role = CommitteeMemberRole.Chair, IsActive = true, JoinedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
+            new() { Id = Guid.NewGuid(), CommitteeId = reviewCommittee.Id, UserId = ChairId, Role = CommitteeMemberRole.Member, IsActive = true, JoinedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
+            new() { Id = Guid.NewGuid(), CommitteeId = reviewCommittee.Id, UserId = AuditorId, Role = CommitteeMemberRole.Member, IsActive = true, JoinedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow },
+        };
+        committees.Add(reviewCommittee);
+
+        return committees;
+    }
+
+    // ==================== Workflow Templates ====================
+    private static List<WorkflowTemplate> CreateWorkflowTemplates()
+    {
+        var templates = new List<WorkflowTemplate>();
+
+        // 1. Tender Approval Workflow
+        var tenderWf = new WorkflowTemplate
+        {
+            Id = Guid.Parse("w1111111-1111-1111-1111-111111111111"),
+            OrganizationId = OrgId,
+            NameAr = "سير عمل اعتماد المنافسة",
+            NameEn = "Tender Approval Workflow",
+            DescriptionAr = "سير العمل الافتراضي لاعتماد كراسة الشروط والمواصفات",
+            DescriptionEn = "Default workflow for approving terms and specifications booklet",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = AdminId
+        };
+        tenderWf.Steps = new List<WorkflowStep>
+        {
+            new() { Id = Guid.NewGuid(), WorkflowTemplateId = tenderWf.Id, NameAr = "مراجعة المنسق", NameEn = "Coordinator Review", Order = 1, StepType = WorkflowStepType.Sequential, RequiredRole = OrganizationRole.Coordinator, CreatedAt = DateTime.UtcNow },
+            new() { Id = Guid.NewGuid(), WorkflowTemplateId = tenderWf.Id, NameAr = "اعتماد مدير الإدارة", NameEn = "Department Manager Approval", Order = 2, StepType = WorkflowStepType.Sequential, RequiredRole = OrganizationRole.DepartmentManager, CreatedAt = DateTime.UtcNow },
+            new() { Id = Guid.NewGuid(), WorkflowTemplateId = tenderWf.Id, NameAr = "الاعتماد النهائي", NameEn = "Final Approval", Order = 3, StepType = WorkflowStepType.Sequential, RequiredRole = OrganizationRole.SystemAdmin, CreatedAt = DateTime.UtcNow },
+        };
+        templates.Add(tenderWf);
+
+        // 2. Evaluation Approval Workflow
+        var evalWf = new WorkflowTemplate
+        {
+            Id = Guid.Parse("02222222-2222-2222-2222-222222222222"),
+            OrganizationId = OrgId,
+            NameAr = "سير عمل اعتماد التقييم",
+            NameEn = "Evaluation Approval Workflow",
+            DescriptionAr = "سير العمل لاعتماد تقارير التقييم الفني والمالي",
+            DescriptionEn = "Workflow for approving technical and financial evaluation reports",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = AdminId
+        };
+        evalWf.Steps = new List<WorkflowStep>
+        {
+            new() { Id = Guid.NewGuid(), WorkflowTemplateId = evalWf.Id, NameAr = "مراجعة رئيس اللجنة", NameEn = "Committee Chair Review", Order = 1, StepType = WorkflowStepType.Sequential, RequiredRole = OrganizationRole.CommitteeChair, CreatedAt = DateTime.UtcNow },
+            new() { Id = Guid.NewGuid(), WorkflowTemplateId = evalWf.Id, NameAr = "اعتماد مدير الإدارة", NameEn = "Department Manager Approval", Order = 2, StepType = WorkflowStepType.Sequential, RequiredRole = OrganizationRole.DepartmentManager, CreatedAt = DateTime.UtcNow },
+        };
+        templates.Add(evalWf);
+
+        // 3. Inquiry Workflow
+        var inquiryWf = new WorkflowTemplate
+        {
+            Id = Guid.Parse("03333333-3333-3333-3333-333333333333"),
+            OrganizationId = OrgId,
+            NameAr = "سير عمل الاستفسارات",
+            NameEn = "Inquiry Workflow",
+            DescriptionAr = "سير العمل لإدارة الاستفسارات والتوضيحات على المنافسات",
+            DescriptionEn = "Workflow for managing inquiries and clarifications on tenders",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = AdminId
+        };
+        inquiryWf.Steps = new List<WorkflowStep>
+        {
+            new() { Id = Guid.NewGuid(), WorkflowTemplateId = inquiryWf.Id, NameAr = "تعيين المختص", NameEn = "Assign Specialist", Order = 1, StepType = WorkflowStepType.Sequential, RequiredRole = OrganizationRole.Coordinator, CreatedAt = DateTime.UtcNow },
+            new() { Id = Guid.NewGuid(), WorkflowTemplateId = inquiryWf.Id, NameAr = "الرد على الاستفسار", NameEn = "Respond to Inquiry", Order = 2, StepType = WorkflowStepType.Sequential, RequiredRole = OrganizationRole.CommitteeMember, CreatedAt = DateTime.UtcNow },
+        };
+        templates.Add(inquiryWf);
+
+        return templates;
+    }
+
+    // ==================== Sample Tenders ====================
+    private static List<Tender> CreateSampleTenders()
+    {
+        var tenders = new List<Tender>();
+
+        tenders.Add(new Tender
+        {
+            Id = Guid.Parse("t1111111-1111-1111-1111-111111111111"),
+            OrganizationId = OrgId,
+            TitleAr = "منافسة توريد أجهزة حاسب آلي ومعدات تقنية",
+            TitleEn = "Computer Equipment and IT Hardware Supply Tender",
+            DescriptionAr = "منافسة عامة لتوريد أجهزة حاسب آلي محمولة ومكتبية وشاشات وطابعات ومعدات شبكات لمقر الوزارة الرئيسي والفروع",
+            DescriptionEn = "General tender for supply of laptops, desktops, monitors, printers, and network equipment for the ministry headquarters and branches",
+            ReferenceNumber = "MOF-2026-001",
+            TenderType = TenderType.GeneralSupply,
+            Status = TenderStatus.Draft,
+            EstimatedValue = 2500000m,
+            SubmissionCloseDate = DateTime.UtcNow.AddDays(45),
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = AdminId
+        });
+
+        tenders.Add(new Tender
+        {
+            Id = Guid.Parse("t2222222-2222-2222-2222-222222222222"),
+            OrganizationId = OrgId,
+            TitleAr = "منافسة خدمات الصيانة والتشغيل للمباني",
+            TitleEn = "Building Maintenance and Operations Services Tender",
+            DescriptionAr = "منافسة عامة لتقديم خدمات الصيانة والتشغيل الشاملة لمباني الوزارة بما يشمل الصيانة الكهربائية والميكانيكية وأنظمة التكييف",
+            DescriptionEn = "General tender for comprehensive building maintenance and operations services including electrical, mechanical, and HVAC systems",
+            ReferenceNumber = "MOF-2026-002",
+            TenderType = TenderType.GeneralServices,
+            Status = TenderStatus.PendingApproval,
+            EstimatedValue = 4800000m,
+            SubmissionCloseDate = DateTime.UtcNow.AddDays(30),
+            CreatedAt = DateTime.UtcNow.AddDays(-10),
+            CreatedBy = ManagerId
+        });
+
+        tenders.Add(new Tender
+        {
+            Id = Guid.Parse("t3333333-3333-3333-3333-333333333333"),
+            OrganizationId = OrgId,
+            TitleAr = "منافسة تطوير نظام إدارة الموارد البشرية",
+            TitleEn = "HR Management System Development Tender",
+            DescriptionAr = "منافسة لتطوير وتنفيذ نظام متكامل لإدارة الموارد البشرية يشمل شؤون الموظفين والرواتب والتدريب وتقييم الأداء",
+            DescriptionEn = "Tender for development and implementation of an integrated HR management system including personnel, payroll, training, and performance evaluation",
+            ReferenceNumber = "MOF-2026-003",
+            TenderType = TenderType.InformationTechnology,
+            Status = TenderStatus.Draft,
+            EstimatedValue = 8500000m,
+            SubmissionCloseDate = DateTime.UtcNow.AddDays(60),
+            CreatedAt = DateTime.UtcNow.AddDays(-5),
+            CreatedBy = CoordinatorId
+        });
+
+        tenders.Add(new Tender
+        {
+            Id = Guid.Parse("t4444444-4444-4444-4444-444444444444"),
+            OrganizationId = OrgId,
+            TitleAr = "منافسة استشارات تطوير الخطة الاستراتيجية",
+            TitleEn = "Strategic Plan Development Consulting Tender",
+            DescriptionAr = "منافسة لتقديم خدمات استشارية لتطوير الخطة الاستراتيجية للوزارة للفترة 2027-2030 بما يتوافق مع رؤية المملكة 2030",
+            DescriptionEn = "Tender for consulting services to develop the ministry's strategic plan for 2027-2030 aligned with Saudi Vision 2030",
+            ReferenceNumber = "MOF-2026-004",
+            TenderType = TenderType.GeneralConsulting,
+            Status = TenderStatus.Approved,
+            EstimatedValue = 3200000m,
+            SubmissionCloseDate = DateTime.UtcNow.AddDays(20),
+            CreatedAt = DateTime.UtcNow.AddDays(-20),
+            CreatedBy = AdminId
+        });
+
+        tenders.Add(new Tender
+        {
+            Id = Guid.Parse("t5555555-5555-5555-5555-555555555555"),
+            OrganizationId = OrgId,
+            TitleAr = "منافسة إنشاء مبنى الفرع الجديد - المنطقة الشرقية",
+            TitleEn = "New Branch Building Construction - Eastern Province",
+            DescriptionAr = "منافسة لإنشاء وتشطيب مبنى الفرع الجديد للوزارة في المنطقة الشرقية بمساحة إجمالية 5000 متر مربع",
+            DescriptionEn = "Tender for construction and finishing of the new ministry branch building in the Eastern Province with a total area of 5,000 sqm",
+            ReferenceNumber = "MOF-2026-005",
+            TenderType = TenderType.GeneralConstruction,
+            Status = TenderStatus.Approved,
+            EstimatedValue = 15000000m,
+            SubmissionCloseDate = DateTime.UtcNow.AddDays(90),
+            CreatedAt = DateTime.UtcNow.AddDays(-15),
+            CreatedBy = ManagerId
+        });
+
+        return tenders;
+    }
+
+    // ==================== System Settings ====================
+    private static List<SystemSetting> CreateSystemSettings()
+    {
+        var settings = new List<SystemSetting>();
+        var now = DateTime.UtcNow;
+
+        var settingsData = new[]
+        {
+            ("session.access_token_minutes", "60", "ar", "مدة صلاحية رمز الوصول بالدقائق", "Access token validity in minutes"),
+            ("session.refresh_token_hours", "8", "ar", "مدة صلاحية رمز التحديث بالساعات", "Refresh token validity in hours"),
+            ("sla.default_response_hours", "48", "ar", "المدة الافتراضية للرد بالساعات", "Default response time in hours"),
+            ("sla.escalation_hours", "72", "ar", "مدة التصعيد بالساعات", "Escalation time in hours"),
+            ("tender.max_extension_days", "30", "ar", "أقصى مدة تمديد للمنافسة بالأيام", "Maximum tender extension in days"),
+            ("tender.min_submission_days", "15", "ar", "أقل مدة لتقديم العروض بالأيام", "Minimum submission period in days"),
+            ("notification.email_enabled", "true", "ar", "تفعيل إشعارات البريد الإلكتروني", "Enable email notifications"),
+            ("locale.default_language", "ar", "ar", "اللغة الافتراضية للنظام", "Default system language"),
+            ("locale.hijri_calendar_enabled", "true", "ar", "تفعيل التقويم الهجري", "Enable Hijri calendar"),
+            ("locale.number_format", "ar-SA", "ar", "تنسيق الأرقام", "Number format"),
+            ("security.max_login_attempts", "5", "ar", "أقصى عدد محاولات تسجيل الدخول", "Maximum login attempts"),
+            ("security.lockout_minutes", "30", "ar", "مدة قفل الحساب بالدقائق", "Account lockout duration in minutes"),
+        };
+
+        foreach (var (key, value, locale, descAr, descEn) in settingsData)
+        {
+            settings.Add(new SystemSetting
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = OrgId,
+                SettingKey = key,
+                SettingValue = value,
+                Category = key.Split('.')[0],
+                LabelAr = descAr,
+                LabelEn = descEn,
+                DataType = "string",
+                CreatedAt = now,
+                CreatedBy = AdminId
+            });
+        }
+
+        return settings;
+    }
+
+    // ==================== Booklet Templates ====================
     private static async Task SeedTemplatesIfNeeded(ApplicationDbContext context)
     {
         if (await context.BookletTemplates.IgnoreQueryFilters().AnyAsync())
@@ -227,7 +612,6 @@ public static class DatabaseSeeder
             CreatedAt = DateTime.UtcNow
         };
 
-        // Create 8 standard sections for each template
         var sectionTypes = Enum.GetValues<BookletSectionType>();
         for (int i = 0; i < sectionTypes.Length; i++)
         {
@@ -326,16 +710,6 @@ public static class DatabaseSeeder
 <li>نظام المنافسات والمشتريات الحكومية الصادر بالمرسوم الملكي رقم (م/١٢٨) وتاريخ ١٤٤٠/١١/١٣هـ.</li>
 <li>اللائحة التنفيذية لنظام المنافسات والمشتريات الحكومية.</li>
 <li>الأنظمة واللوائح والقرارات ذات العلاقة.</li>
-</ul>
-
-<h3>٤. شروط المشاركة</h3>
-<p>يُشترط في المتنافس ما يلي:</p>
-<ul>
-<li>أن يكون مسجلاً في منصة اعتماد.</li>
-<li>أن يكون مصنفاً في المجال المطلوب (إن كان التصنيف مطلوباً).</li>
-<li>أن يكون سارياً سجله التجاري.</li>
-<li>أن يكون ملتزماً بسداد الزكاة والضرائب.</li>
-<li>أن يكون مسجلاً في نظام التأمينات الاجتماعية.</li>
 </ul>",
 
             BookletSectionType.TechnicalScopeAndSpecifications => @"
@@ -385,58 +759,44 @@ public static class DatabaseSeeder
 </ul>
 
 <h3>٢. معايير التقييم الفني</h3>
-<p>[سيتم تعبئة هذا القسم تلقائياً من شجرة معايير التقييم]</p>
-
-<h3>٣. معايير التقييم المالي</h3>
-<p>[سيتم تعبئة هذا القسم تلقائياً من شجرة معايير التقييم]</p>
-
-<h3>٤. الحد الأدنى للنجاح الفني</h3>
-<p>يجب ألا تقل الدرجة الفنية عن [٦٠]% للتأهل للتقييم المالي.</p>",
+<table border='1' cellpadding='5' cellspacing='0'>
+<tr><th>المعيار</th><th>الوزن</th></tr>
+<tr><td>منهجية العمل وخطة التنفيذ</td><td>25%</td></tr>
+<tr><td>الخبرات والمشاريع المماثلة</td><td>20%</td></tr>
+<tr><td>فريق العمل والكوادر الفنية</td><td>15%</td></tr>
+</table>",
 
             BookletSectionType.FinancialTerms => @"
 <h3>١. تقديم العرض المالي</h3>
-<p>يجب تقديم العرض المالي في مظروف مستقل ومختوم، ويتضمن:</p>
-<ul>
-<li>جدول الكميات والأسعار مفصلاً.</li>
-<li>القيمة الإجمالية شاملة ضريبة القيمة المضافة.</li>
-</ul>
+<p>يجب تقديم العرض المالي في مظروف مستقل ومختوم.</p>
 
-<h3>٢. العملة</h3>
-<p>تُقدم جميع الأسعار بالريال السعودي.</p>
+<h3>٢. جدول الكميات والأسعار</h3>
+<p>يجب تعبئة جدول الكميات والأسعار المرفق بالكامل.</p>
 
-<h3>٣. صلاحية العرض</h3>
-<p>يجب أن يكون العرض سارياً لمدة لا تقل عن (٩٠) يوماً من تاريخ فتح المظاريف.</p>
+<h3>٣. الضمان الابتدائي</h3>
+<p>يجب تقديم ضمان ابتدائي بنسبة (١-٢)% من قيمة العرض المالي.</p>
 
-<h3>٤. الضمان الابتدائي</h3>
-<p>يجب تقديم ضمان ابتدائي بنسبة (١-٢)% من قيمة العرض.</p>",
+<h3>٤. شروط الدفع</h3>
+<p>يتم الدفع وفقاً للمراحل المحددة في العقد بعد إنجاز كل مرحلة واعتمادها.</p>",
 
             BookletSectionType.ContractualTerms => @"
 <h3>١. مدة العقد</h3>
-<p>مدة العقد [يُحدد] من تاريخ توقيعه، قابلة للتجديد وفقاً لأحكام النظام.</p>
+<p>[يُرجى تحديد مدة العقد]</p>
 
 <h3>٢. الضمان النهائي</h3>
 <p>يلتزم المتعاقد بتقديم ضمان نهائي بنسبة (٥)% من قيمة العقد.</p>
 
 <h3>٣. الغرامات</h3>
-<p>في حال التأخير عن التنفيذ، تُفرض غرامة تأخير وفقاً لأحكام نظام المنافسات والمشتريات الحكومية.</p>
+<p>في حال التأخير عن التنفيذ يتم تطبيق غرامة تأخير بنسبة لا تتجاوز (١٠)% من قيمة العقد.</p>
 
-<h3>٤. حقوق الملكية الفكرية</h3>
-<p>تؤول جميع حقوق الملكية الفكرية للمخرجات إلى الجهة الحكومية.</p>
-
-<h3>٥. السرية</h3>
-<p>يلتزم المتعاقد بالمحافظة على سرية جميع المعلومات والبيانات التي يطلع عليها أثناء تنفيذ العقد.</p>",
+<h3>٤. فسخ العقد</h3>
+<p>يحق للجهة الحكومية فسخ العقد وفقاً لأحكام نظام المنافسات والمشتريات الحكومية.</p>",
 
             BookletSectionType.LocalContentRequirements => @"
-<h3>١. التزامات المحتوى المحلي</h3>
-<p>يلتزم المتنافس بتحقيق نسبة المحتوى المحلي المطلوبة وفقاً لسياسة هيئة المحتوى المحلي والمشتريات الحكومية (LCGPA).</p>
+<h3>١. متطلبات المحتوى المحلي</h3>
+<p>يلتزم المتنافس بتحقيق نسبة المحتوى المحلي المطلوبة وفقاً لسياسة هيئة المحتوى المحلي والمشتريات الحكومية.</p>
 
-<h3>٢. النسبة المستهدفة</h3>
-<p>النسبة المستهدفة للمحتوى المحلي: [يُحدد]%</p>
-
-<h3>٣. آلية الاحتساب</h3>
-<p>يتم احتساب نسبة المحتوى المحلي وفقاً للمعايير المعتمدة من الهيئة.</p>
-
-<h3>٤. المستندات المطلوبة</h3>
+<h3>٢. المستندات المطلوبة</h3>
 <ul>
 <li>شهادة المحتوى المحلي سارية المفعول.</li>
 <li>خطة تحقيق المحتوى المحلي.</li>

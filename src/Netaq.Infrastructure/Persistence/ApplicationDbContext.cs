@@ -49,6 +49,9 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<KnowledgeSource> KnowledgeSources => Set<KnowledgeSource>();
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 
+    // Sprint 6 entities - Inquiries
+    public DbSet<Inquiry> Inquiries => Set<Inquiry>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

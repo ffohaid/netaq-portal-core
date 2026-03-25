@@ -75,6 +75,48 @@ const router = createRouter({
           name: 'TemplateDetail',
           component: () => import('../views/templates/TemplateDetailView.vue'),
         },
+        // Sprint 6: Committees
+        {
+          path: 'committees',
+          name: 'CommitteeList',
+          component: () => import('../views/committees/CommitteeListView.vue'),
+          meta: { roles: ['SystemAdmin', 'OrganizationAdmin', 'DepartmentManager'] },
+        },
+        {
+          path: 'committees/create',
+          name: 'CreateCommittee',
+          component: () => import('../views/committees/CreateCommitteeView.vue'),
+          meta: { roles: ['SystemAdmin', 'OrganizationAdmin'] },
+        },
+        {
+          path: 'committees/:id',
+          name: 'CommitteeDetail',
+          component: () => import('../views/committees/CommitteeDetailView.vue'),
+          meta: { roles: ['SystemAdmin', 'OrganizationAdmin', 'DepartmentManager'] },
+        },
+        // Sprint 6: Inquiries
+        {
+          path: 'inquiries',
+          name: 'InquiryList',
+          component: () => import('../views/inquiries/InquiryListView.vue'),
+        },
+        {
+          path: 'inquiries/create',
+          name: 'CreateInquiry',
+          component: () => import('../views/inquiries/CreateInquiryView.vue'),
+        },
+        {
+          path: 'inquiries/:id',
+          name: 'InquiryDetail',
+          component: () => import('../views/inquiries/InquiryDetailView.vue'),
+        },
+        // Sprint 6: Permission Matrix
+        {
+          path: 'admin/permissions',
+          name: 'PermissionMatrix',
+          component: () => import('../views/permissions/PermissionMatrixView.vue'),
+          meta: { roles: ['SystemAdmin'] },
+        },
         // Existing routes
         {
           path: 'workflows',
