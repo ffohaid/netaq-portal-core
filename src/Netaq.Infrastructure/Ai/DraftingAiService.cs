@@ -302,51 +302,33 @@ public class DraftingAiService : IAiDraftingService
         string? additionalContext)
     {
         var contextLine = additionalContext != null ? $"- Additional Context: {additionalContext}" : "";
-        return $@"You are an expert Saudi government procurement advisor specializing in evaluation criteria.
-        
-        Tender Information:
-        - Title (AR): {titleAr}
-        - Title (EN): {titleEn}
-        - Description (AR): {descriptionAr}
-        - Description (EN): {descriptionEn}
-        - Tender Type: {tenderType}
-        - Criteria Type Requested: {criteriaType}
-        {contextLine}
-        
-        Based on the Saudi Government Tenders and Procurement Law (نظام المنافسات والمشتريات الحكومية),
-        suggest {criteriaType} evaluation criteria for this tender.
-        
-        Requirements:
-        1. Provide 4-6 main criteria with weights that sum to exactly 100%.
-        2. Each criterion should have 2-3 sub-criteria.
-        3. Include passing thresholds where appropriate.
-        4. Provide names and descriptions in both Arabic and English.
-        5. Consider local content requirements (المحتوى المحلي) if applicable.
-        
-        Respond in JSON format:
-        {{
-          ""criteria"": [
-            {{
-              ""nameAr"": ""..."",
-              ""nameEn"": ""..."",
-              ""descriptionAr"": ""..."",
-              ""descriptionEn"": ""..."",
-              ""weight"": 30,
-              ""passingThreshold"": 60,
-              ""children"": [
-                {{
-                  ""nameAr"": ""..."",
-                  ""nameEn"": ""..."",
-                  ""descriptionAr"": ""..."",
-                  ""descriptionEn"": ""..."",
-                  ""weight"": 50,
-                  ""passingThreshold"": null
-                }}
-              ]
-            }}
-          ],
-          ""rationale"": ""Brief explanation of why these criteria were chosen.""
-        }}";
+        return $@"You are a Saudi government procurement advisor. Suggest {criteriaType} evaluation criteria.
+
+Tender: {titleAr} / {titleEn}
+Type: {tenderType}
+{contextLine}
+
+IMPORTANT INSTRUCTIONS:
+- Respond with ONLY valid JSON. No markdown, no code blocks, no extra text.
+- Provide exactly 4 main criteria with weights summing to 100%.
+- Each criterion has max 2 children.
+- Keep descriptions SHORT (max 80 chars each).
+- Rationale max 200 chars.
+
+JSON format:
+{{
+  ""criteria"": [{{
+    ""nameAr"": ""..."", ""nameEn"": ""..."",
+    ""descriptionAr"": ""..."", ""descriptionEn"": ""..."",
+    ""weight"": 30, ""passingThreshold"": 60,
+    ""children"": [{{
+      ""nameAr"": ""..."", ""nameEn"": ""..."",
+      ""descriptionAr"": ""..."", ""descriptionEn"": ""..."",
+      ""weight"": 50, ""passingThreshold"": null
+    }}]
+  }}],
+  ""rationale"": ""Brief explanation.""
+}}";
     }
 
     private static string BuildComplianceCheckPrompt(
