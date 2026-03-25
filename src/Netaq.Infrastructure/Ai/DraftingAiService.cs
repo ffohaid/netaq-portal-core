@@ -160,7 +160,12 @@ public class DraftingAiService : IAiDraftingService
     private async Task<string> SendGeminiRequestAsync(Domain.Entities.AiConfiguration config, string apiKey, string prompt, CancellationToken cancellationToken)
     {
         var client = _httpClientFactory.CreateClient();
-        var endpoint = $"{config.Endpoint}/v1beta/models/{config.ModelName}:generateContent?key={apiKey}";
+        // Remove trailing slash from endpoint if present
+        var baseEndpoint = config.Endpoint.TrimEnd('/');
+        // Check if endpoint already contains /v1beta
+        var endpoint = baseEndpoint.EndsWith("/v1beta") || baseEndpoint.EndsWith("/v1")
+            ? $"{baseEndpoint}/models/{config.ModelName}:generateContent?key={apiKey}"
+            : $"{baseEndpoint}/v1beta/models/{config.ModelName}:generateContent?key={apiKey}";
 
         var requestBody = new
         {
