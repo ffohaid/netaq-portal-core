@@ -1,0 +1,93 @@
+# ============================================================
+# NETAQ Portal — Dependabot Configuration
+# Sprint 6: Support & Maintenance
+# ============================================================
+# Automatically checks for dependency updates weekly.
+# ============================================================
+
+version: 2
+updates:
+  # .NET NuGet packages
+  - package-ecosystem: "nuget"
+    directory: "/src"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Asia/Riyadh"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "ffohaid"
+    labels:
+      - "dependencies"
+      - "backend"
+    commit-message:
+      prefix: "chore(deps):"
+
+  # npm packages (Vue 3 Frontend)
+  - package-ecosystem: "npm"
+    directory: "/src/Netaq.Frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Asia/Riyadh"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "ffohaid"
+    labels:
+      - "dependencies"
+      - "frontend"
+    commit-message:
+      prefix: "chore(deps):"
+
+  # Docker images
+  - package-ecosystem: "docker"
+    directory: "/src/Netaq.Api"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Asia/Riyadh"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "ffohaid"
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "chore(docker):"
+
+  # Docker Compose
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Asia/Riyadh"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "ffohaid"
+    labels:
+      - "dependencies"
+      - "infrastructure"
+    commit-message:
+      prefix: "chore(infra):"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Asia/Riyadh"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "ffohaid"
+    labels:
+      - "dependencies"
+      - "ci-cd"
+    commit-message:
+      prefix: "chore(ci):"
