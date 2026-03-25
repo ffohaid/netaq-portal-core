@@ -505,11 +505,7 @@ function getStatusClass(status: string) {
                   </td>
                   <td class="py-3 text-gray-500">{{ committee.type }}</td>
                   <td class="py-3">
-                    <span :class="{
-                      'badge-success': committee.status === 'Active',
-                      'badge-warning': committee.status === 'Pending',
-                      'badge-info': committee.status === 'Dissolved',
-                    }}>{{ committeeStatusLabel(committee.status) }}</span>
+                    <span :class="committee.status === 'Active' ? 'badge-success' : committee.status === 'Pending' ? 'badge-warning' : 'badge-info'">{{ committeeStatusLabel(committee.status) }}</span>
                   </td>
                   <td class="py-3 text-gray-500">{{ committee.memberCount }}</td>
                   <td class="py-3 text-gray-500 text-xs">{{ locale === 'ar' ? committee.tenderTitleAr : committee.tenderTitleEn }}</td>
