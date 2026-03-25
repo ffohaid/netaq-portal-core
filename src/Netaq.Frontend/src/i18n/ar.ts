@@ -82,6 +82,7 @@ export default {
     aiConfig: 'إعدادات الذكاء الاصطناعي',
     knowledgeBase: 'قاعدة المعرفة',
     systemSettings: 'إعدادات النظام',
+    evaluation: 'فحص وتقييم العروض',
   },
   dashboard: {
     title: 'لوحة التحكم',

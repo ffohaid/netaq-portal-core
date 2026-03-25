@@ -160,6 +160,37 @@ const router = createRouter({
           component: () => import('../views/admin/UserManagementView.vue'),
           meta: { roles: ['SystemAdmin', 'OrganizationAdmin'] },
         },
+        // Evaluation & Proposals
+        {
+          path: 'evaluation',
+          name: 'EvaluationDashboard',
+          component: () => import('../views/evaluation/EvaluationDashboardView.vue'),
+        },
+        {
+          path: 'tenders/:tenderId/proposals',
+          name: 'ProposalManagement',
+          component: () => import('../views/evaluation/ProposalManagementView.vue'),
+        },
+        {
+          path: 'tenders/:tenderId/evaluation/financial',
+          name: 'FinancialEvaluation',
+          component: () => import('../views/evaluation/FinancialEvaluationView.vue'),
+        },
+        {
+          path: 'tenders/:tenderId/evaluation/reports',
+          name: 'EvaluationReports',
+          component: () => import('../views/evaluation/EvaluationReportsView.vue'),
+        },
+        {
+          path: 'tenders/:tenderId/evaluation/:proposalId/compliance',
+          name: 'ComplianceCheck',
+          component: () => import('../views/evaluation/ComplianceCheckView.vue'),
+        },
+        {
+          path: 'tenders/:tenderId/evaluation/:proposalId',
+          name: 'TechnicalEvaluation',
+          component: () => import('../views/evaluation/TechnicalEvaluationView.vue'),
+        },
         // Reports
         {
           path: 'reports',

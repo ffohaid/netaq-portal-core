@@ -82,6 +82,7 @@ export default {
     aiConfig: 'AI Configuration',
     knowledgeBase: 'Knowledge Base',
     systemSettings: 'System Settings',
+    evaluation: 'Proposal Evaluation',
   },
   dashboard: {
     title: 'Dashboard',
