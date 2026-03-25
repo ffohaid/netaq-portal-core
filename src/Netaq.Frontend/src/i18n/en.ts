@@ -122,6 +122,9 @@ export default {
     complianceFailed: 'Compliance Failed',
     recommended: 'Recommended',
     excluded: 'Excluded',
+    allCommittees: 'All Committees',
+    totalCommittees: 'Total Committees',
+    manageCommittees: 'Manage Committees',
   },
   tasks: {
     title: 'Unified Task Center',
@@ -543,7 +546,11 @@ export default {
     status: {
       Active: 'Active',
       Inactive: 'Inactive',
+      Pending: 'Pending',
       Dissolved: 'Dissolved',
+      Evaluating: 'Evaluating',
+      Completed: 'Completed',
+      undefined: 'Undefined',
     },
   },
   // ===== Sprint 6: Inquiries =====

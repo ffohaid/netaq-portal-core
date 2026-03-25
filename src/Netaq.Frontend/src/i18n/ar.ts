@@ -122,6 +122,9 @@ export default {
     complianceFailed: 'لم يجتز الامتثال',
     recommended: 'موصى بها',
     excluded: 'مستبعدة',
+    allCommittees: 'جميع اللجان',
+    totalCommittees: 'إجمالي اللجان',
+    manageCommittees: 'إدارة اللجان',
   },
   tasks: {
     title: 'مركز المهام الموحد',
@@ -526,6 +529,14 @@ export default {
     selectChair: 'اختيار رئيس اللجنة',
     selectedCount: 'تم اختيار',
     minMembers: 'يجب اختيار عضوين على الأقل',
+    status: {
+      Active: 'نشطة',
+      Pending: 'معلقة',
+      Dissolved: 'منحلة',
+      Evaluating: 'قيد التقييم',
+      Completed: 'مكتملة',
+      undefined: 'غير محدد',
+    },
     committeeType: {
       TechnicalEvaluation: 'لجنة فحص فني',
       FinancialEvaluation: 'لجنة فحص مالي',
