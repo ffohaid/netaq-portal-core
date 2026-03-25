@@ -5,8 +5,31 @@ import type { ApiResponse } from '../types'
 
 export interface PermissionMatrix {
   id: string
-  tenderPhase: string
+  userId?: string
+  userFullNameAr?: string
+  userFullNameEn?: string
+  userEmail?: string
   userRole: string
+  tenderPhase: string
+  canView: boolean
+  canCreate: boolean
+  canEdit: boolean
+  canDelete: boolean
+  canApprove: boolean
+  canReject: boolean
+  canDelegate: boolean
+  canExport: boolean
+}
+
+export interface PermissionMatrixGroup {
+  role: number
+  roleName: string
+  phases: PermissionMatrix[]
+}
+
+export interface UpdatePermissionEntry {
+  userRole: string
+  tenderPhase: string
   canView: boolean
   canCreate: boolean
   canEdit: boolean
@@ -31,6 +54,7 @@ export interface UpdatePermissionRequest {
 
 export const usePermissionStore = defineStore('permissions', () => {
   const matrix = ref<PermissionMatrix[]>([])
+  const groups = ref<PermissionMatrixGroup[]>([])
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   const isSaving = ref(false)
@@ -39,9 +63,21 @@ export const usePermissionStore = defineStore('permissions', () => {
     isLoading.value = true
     error.value = null
     try {
-      const response = await api.get<ApiResponse<PermissionMatrix[]>>('/permissions')
+      const response = await api.get<ApiResponse<PermissionMatrixGroup[]>>('/permissions')
       if (response.data.isSuccess && response.data.data) {
-        matrix.value = response.data.data
+        groups.value = response.data.data
+        // Flatten for easy lookup
+        const flat: PermissionMatrix[] = []
+        for (const group of response.data.data) {
+          for (const phase of group.phases) {
+            flat.push({
+              ...phase,
+              userRole: group.roleName,
+              tenderPhase: phase.tenderPhase !== undefined ? String(phase.tenderPhase) : ''
+            })
+          }
+        }
+        matrix.value = flat
       }
     } catch (err: any) {
       error.value = err.response?.data?.error || 'Failed to fetch permissions'
@@ -50,33 +86,11 @@ export const usePermissionStore = defineStore('permissions', () => {
     }
   }
 
-  async function updatePermission(request: UpdatePermissionRequest) {
+  async function bulkUpdate(entries: UpdatePermissionEntry[]) {
     isSaving.value = true
     error.value = null
     try {
-      const response = await api.put<ApiResponse<void>>(`/permissions/${request.id}`, request)
-      if (response.data.isSuccess) {
-        const idx = matrix.value.findIndex(p => p.id === request.id)
-        if (idx !== -1) {
-          matrix.value[idx] = { ...matrix.value[idx], ...request }
-        }
-        return true
-      }
-      error.value = response.data.error || 'Failed to update permission'
-      return false
-    } catch (err: any) {
-      error.value = err.response?.data?.error || 'Failed to update permission'
-      return false
-    } finally {
-      isSaving.value = false
-    }
-  }
-
-  async function bulkUpdate(requests: UpdatePermissionRequest[]) {
-    isSaving.value = true
-    error.value = null
-    try {
-      const response = await api.put<ApiResponse<void>>('/permissions/bulk', { permissions: requests })
+      const response = await api.put<ApiResponse<void>>('/permissions', { entries })
       if (response.data.isSuccess) {
         await fetchMatrix()
         return true
@@ -93,11 +107,11 @@ export const usePermissionStore = defineStore('permissions', () => {
 
   return {
     matrix,
+    groups,
     isLoading,
     error,
     isSaving,
     fetchMatrix,
-    updatePermission,
     bulkUpdate,
   }
 })

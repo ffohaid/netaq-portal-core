@@ -573,11 +573,10 @@ export default {
       SystemAdmin: 'System Admin',
       OrganizationAdmin: 'Organization Admin',
       DepartmentManager: 'Department Manager',
-      TenderSpecialist: 'Tender Specialist',
+      Coordinator: 'Coordinator',
       CommitteeChair: 'Committee Chair',
       CommitteeMember: 'Committee Member',
-      FinancialAuditor: 'Financial Auditor',
-      LegalReviewer: 'Legal Reviewer',
+      LegalAdvisor: 'Legal Advisor',
       Viewer: 'Viewer',
     },
     fields: {

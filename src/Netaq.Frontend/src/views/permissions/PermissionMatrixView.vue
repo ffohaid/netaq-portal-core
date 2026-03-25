@@ -1,25 +1,31 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { usePermissionStore, type PermissionMatrix, type UpdatePermissionRequest } from '../../stores/permissions'
-import { getCurrentLocale } from '../../i18n'
+import { usePermissionStore, type PermissionMatrix, type UpdatePermissionEntry } from '../../stores/permissions'
 
 const { t } = useI18n()
 const store = usePermissionStore()
-const locale = computed(() => getCurrentLocale())
 const hasChanges = ref(false)
-const pendingChanges = ref<Map<string, UpdatePermissionRequest>>(new Map())
+const pendingChanges = ref<Map<string, any>>(new Map())
 const saveSuccess = ref(false)
 
+// Match backend TenderPhase enum values (sent as integers in JSON)
 const phases = [
-  'Drafting', 'Review', 'Approval', 'Publishing', 'OfferOpening',
-  'TechnicalEvaluation', 'FinancialEvaluation', 'Awarding', 'Contracting'
+  { value: 1, key: 'Drafting' },
+  { value: 2, key: 'Review' },
+  { value: 3, key: 'Approval' },
+  { value: 4, key: 'Published' },
+  { value: 5, key: 'EvaluationTechnical' },
+  { value: 6, key: 'EvaluationFinancial' },
+  { value: 7, key: 'Awarding' },
+  { value: 8, key: 'Closed' },
 ]
 
+// Match backend OrganizationRole enum names
 const roles = [
   'SystemAdmin', 'OrganizationAdmin', 'DepartmentManager',
-  'TenderSpecialist', 'CommitteeChair', 'CommitteeMember',
-  'FinancialAuditor', 'LegalReviewer', 'Viewer'
+  'Coordinator', 'CommitteeChair', 'CommitteeMember',
+  'LegalAdvisor', 'Viewer'
 ]
 
 const permissionFields = [
@@ -27,8 +33,18 @@ const permissionFields = [
   'canApprove', 'canReject', 'canDelegate', 'canExport'
 ] as const
 
-function getPhaseLabel(phase: string) {
-  return t(`permissions.phases.${phase}`)
+function getPhaseLabel(key: string) {
+  const labels: Record<string, string> = {
+    Drafting: t('permissions.phases.Drafting'),
+    Review: t('permissions.phases.Review'),
+    Approval: t('permissions.phases.Approval'),
+    Published: t('permissions.phases.Publishing'),
+    EvaluationTechnical: t('permissions.phases.TechnicalEvaluation'),
+    EvaluationFinancial: t('permissions.phases.FinancialEvaluation'),
+    Awarding: t('permissions.phases.Awarding'),
+    Closed: t('permissions.phases.Contracting'),
+  }
+  return labels[key] || key
 }
 
 function getRoleLabel(role: string) {
@@ -39,17 +55,21 @@ function getPermLabel(perm: string) {
   return t(`permissions.fields.${perm}`)
 }
 
-function getMatrixEntry(phase: string, role: string): PermissionMatrix | undefined {
-  return store.matrix.find(m => m.tenderPhase === phase && m.userRole === role)
+function getMatrixEntry(phaseValue: number, role: string): PermissionMatrix | undefined {
+  return store.matrix.find(m => {
+    const mPhase = typeof m.tenderPhase === 'string' ? parseInt(m.tenderPhase) : m.tenderPhase
+    return mPhase === phaseValue && m.userRole === role
+  })
 }
 
 function togglePermission(entry: PermissionMatrix, field: typeof permissionFields[number]) {
-  const newValue = !entry[field]
+  const newValue = !(entry as any)[field]
   const key = entry.id
 
   if (!pendingChanges.value.has(key)) {
     pendingChanges.value.set(key, {
-      id: entry.id,
+      userRole: entry.userRole,
+      tenderPhase: entry.tenderPhase,
       canView: entry.canView,
       canCreate: entry.canCreate,
       canEdit: entry.canEdit,
@@ -62,7 +82,7 @@ function togglePermission(entry: PermissionMatrix, field: typeof permissionField
   }
 
   const pending = pendingChanges.value.get(key)!
-  ;(pending as any)[field] = newValue
+  pending[field] = newValue
   ;(entry as any)[field] = newValue
   hasChanges.value = true
   saveSuccess.value = false
@@ -70,8 +90,19 @@ function togglePermission(entry: PermissionMatrix, field: typeof permissionField
 
 async function saveAll() {
   if (pendingChanges.value.size === 0) return
-  const requests = Array.from(pendingChanges.value.values())
-  const success = await store.bulkUpdate(requests)
+  const entries: UpdatePermissionEntry[] = Array.from(pendingChanges.value.values()).map(p => ({
+    userRole: p.userRole,
+    tenderPhase: p.tenderPhase,
+    canView: p.canView,
+    canCreate: p.canCreate,
+    canEdit: p.canEdit,
+    canDelete: p.canDelete,
+    canApprove: p.canApprove,
+    canReject: p.canReject,
+    canDelegate: p.canDelegate,
+    canExport: p.canExport,
+  }))
+  const success = await store.bulkUpdate(entries)
   if (success) {
     pendingChanges.value.clear()
     hasChanges.value = false
@@ -84,9 +115,9 @@ const selectedPhase = ref(phases[0])
 
 const filteredMatrix = computed(() => {
   return roles.map(role => {
-    const entry = getMatrixEntry(selectedPhase.value, role)
+    const entry = getMatrixEntry(selectedPhase.value.value, role)
     return { role, entry }
-  }).filter(r => r.entry)
+  })
 })
 
 onMounted(() => store.fetchMatrix())
@@ -126,14 +157,14 @@ onMounted(() => store.fetchMatrix())
       <div class="flex overflow-x-auto border-b border-gray-200">
         <button
           v-for="phase in phases"
-          :key="phase"
+          :key="phase.key"
           @click="selectedPhase = phase"
           class="px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors"
-          :class="selectedPhase === phase
+          :class="selectedPhase.key === phase.key
             ? 'border-primary-600 text-primary-600'
             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
         >
-          {{ getPhaseLabel(phase) }}
+          {{ getPhaseLabel(phase.key) }}
         </button>
       </div>
     </div>
@@ -172,17 +203,18 @@ onMounted(() => store.fetchMatrix())
                   v-if="entry"
                   @click="togglePermission(entry, perm)"
                   class="w-8 h-8 rounded-lg flex items-center justify-center transition-all mx-auto"
-                  :class="entry[perm]
+                  :class="(entry as any)[perm]
                     ? 'bg-green-100 text-green-600 hover:bg-green-200'
                     : 'bg-gray-100 text-gray-400 hover:bg-gray-200'"
                 >
-                  <svg v-if="entry[perm]" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg v-if="(entry as any)[perm]" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
                   <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
+                <span v-else class="text-gray-300 text-xs">—</span>
               </td>
             </tr>
           </tbody>

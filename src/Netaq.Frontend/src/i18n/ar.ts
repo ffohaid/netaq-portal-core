@@ -573,11 +573,10 @@ export default {
       SystemAdmin: 'مدير النظام',
       OrganizationAdmin: 'مدير الجهة',
       DepartmentManager: 'مدير الإدارة',
-      TenderSpecialist: 'أخصائي منافسات',
+      Coordinator: 'منسق',
       CommitteeChair: 'رئيس لجنة',
       CommitteeMember: 'عضو لجنة',
-      FinancialAuditor: 'مدقق مالي',
-      LegalReviewer: 'مراجع قانوني',
+      LegalAdvisor: 'مستشار قانوني',
       Viewer: 'مشاهد',
     },
     fields: {
