@@ -22,7 +22,7 @@ export interface OrganizationSettings {
 
 export interface AiConfiguration {
   id: string
-  providerType: string
+  providerType: string | number
   providerName: string
   isActive: boolean
   endpoint: string
