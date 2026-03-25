@@ -9,16 +9,10 @@ const hasChanges = ref(false)
 const pendingChanges = ref<Map<string, any>>(new Map())
 const saveSuccess = ref(false)
 
-// Match backend TenderPhase enum values (sent as integers in JSON)
+// Match backend TenderPhase enum names (serialized as strings via System.Text.Json)
 const phases = [
-  { value: 1, key: 'Drafting' },
-  { value: 2, key: 'Review' },
-  { value: 3, key: 'Approval' },
-  { value: 4, key: 'Published' },
-  { value: 5, key: 'EvaluationTechnical' },
-  { value: 6, key: 'EvaluationFinancial' },
-  { value: 7, key: 'Awarding' },
-  { value: 8, key: 'Closed' },
+  'Drafting', 'Review', 'Approval', 'Published',
+  'EvaluationTechnical', 'EvaluationFinancial', 'Awarding', 'Closed'
 ]
 
 // Match backend OrganizationRole enum names
@@ -55,11 +49,8 @@ function getPermLabel(perm: string) {
   return t(`permissions.fields.${perm}`)
 }
 
-function getMatrixEntry(phaseValue: number, role: string): PermissionMatrix | undefined {
-  return store.matrix.find(m => {
-    const mPhase = typeof m.tenderPhase === 'string' ? parseInt(m.tenderPhase) : m.tenderPhase
-    return mPhase === phaseValue && m.userRole === role
-  })
+function getMatrixEntry(phase: string, role: string): PermissionMatrix | undefined {
+  return store.matrix.find(m => m.tenderPhase === phase && m.userRole === role)
 }
 
 function togglePermission(entry: PermissionMatrix, field: typeof permissionFields[number]) {
@@ -115,7 +106,7 @@ const selectedPhase = ref(phases[0])
 
 const filteredMatrix = computed(() => {
   return roles.map(role => {
-    const entry = getMatrixEntry(selectedPhase.value.value, role)
+    const entry = getMatrixEntry(selectedPhase.value, role)
     return { role, entry }
   })
 })
@@ -157,14 +148,14 @@ onMounted(() => store.fetchMatrix())
       <div class="flex overflow-x-auto border-b border-gray-200">
         <button
           v-for="phase in phases"
-          :key="phase.key"
+          :key="phase"
           @click="selectedPhase = phase"
           class="px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors"
-          :class="selectedPhase.key === phase.key
+          :class="selectedPhase === phase
             ? 'border-primary-600 text-primary-600'
             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
         >
-          {{ getPhaseLabel(phase.key) }}
+          {{ getPhaseLabel(phase) }}
         </button>
       </div>
     </div>
