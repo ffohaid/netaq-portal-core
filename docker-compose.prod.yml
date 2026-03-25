@@ -94,7 +94,7 @@ services:
         delay: 10s
         order: start-first
     healthcheck:
-      test: ["CMD-SHELL", "(echo > /dev/tcp/localhost/5000) 2>/dev/null || exit 1"]
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 5

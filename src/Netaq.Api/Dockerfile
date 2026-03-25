@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-hosny-amiri \
     fonts-kacst \
     fontconfig \
+    curl \
     && fc-cache -fv \
     && rm -rf /var/lib/apt/lists/*
 
