@@ -87,7 +87,11 @@ public class DraftingAiService : IAiDraftingService
 
         try
         {
+            _logger.LogInformation("Raw AI response length: {Length}, first 200 chars: {Preview}", 
+                response.Length, response.Length > 200 ? response.Substring(0, 200) : response);
             var result = ParseComplianceCheck(response);
+            _logger.LogInformation("Parsed compliance check: IsCompliant={IsCompliant}, Issues={IssueCount}, Summary length={SummaryLen}",
+                result.IsCompliant, result.Issues.Count, result.Summary.Length);
             return new AiComplianceCheckDto(
                 result.IsCompliant,
                 result.Issues,
@@ -98,7 +102,12 @@ public class DraftingAiService : IAiDraftingService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to parse AI compliance check. Returning raw response.");
+            _logger.LogWarning(ex, "Failed to parse AI compliance check. Raw response first 500 chars: {Preview}", 
+                response.Length > 500 ? response.Substring(0, 500) : response);
+            // Try to extract a meaningful summary from the raw response
+            var extractedJson = ExtractJsonFromResponse(response);
+            _logger.LogWarning("Extracted JSON first 500 chars: {Preview}", 
+                extractedJson.Length > 500 ? extractedJson.Substring(0, 500) : extractedJson);
             return new AiComplianceCheckDto(
                 false,
                 new List<ComplianceIssue>(),
