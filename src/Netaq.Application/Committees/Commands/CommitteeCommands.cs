@@ -293,7 +293,7 @@ public class DissolveCommitteeCommandHandler : IRequestHandler<DissolveCommittee
             committee.PurposeAr, committee.PurposeEn, committee.IsActive,
             committee.TenderId, null, null, committee.FormedAt, committee.DissolvedAt,
             committee.StartDate, committee.EndDate,
-            committee.FormationDecisionAttachmentUrl, committee.FormationDecisionNumber,
+            committee.FormationDecisionUrl, committee.FormationDecisionNumber,
             committee.CreatedAt, 0
         );
 
