@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 
 # Install Arabic fonts for PDF export support (Sprint 6 - AC-5)
 RUN apt-get update && apt-get install -y --no-install-recommends \
